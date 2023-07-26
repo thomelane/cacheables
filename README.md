@@ -116,7 +116,7 @@ with foo.enable_cache(), bar.enable_cache():
 Or all cacheable functions at the same time:
 
 ```python
-from common.cacheable import enable_cache
+from cacheable import enable_cache
 
 with enable_cache():
     foo("hello")
