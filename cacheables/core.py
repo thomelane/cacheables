@@ -13,6 +13,9 @@ from typing import Any, Callable, Optional
 
 from loguru import logger
 
+from .serializers import Serializer, PickleSerializer
+
+
 logger.disable(__name__)
 
 
@@ -49,30 +52,6 @@ def compute_version_id(name: str, metadata: dict) -> str:
     return hashlib.md5(str_to_hash.encode("utf-8")).hexdigest()
 
 
-def pickle_dump(obj: Any, path: Path):
-    path = path / "output.pkl"
-    with open(path, "wb") as file:
-        pickle.dump(obj, file)
-
-
-def pickle_load(path: Path) -> Any:
-    path = path / "output.pkl"
-    with open(path, "rb") as file:
-        return pickle.load(file)
-
-
-def json_dump(obj: Any, path: Path):
-    path = path / "output.json"
-    with open(path, "w", encoding="utf-8") as file:
-        json.dump(obj, file, indent=4)
-
-
-def json_load(path: Path) -> Any:
-    path = path / "output.json"
-    with open(path, "r", encoding="utf-8") as file:
-        return json.load(file)
-
-
 class DumpException(Exception):
     pass
 
@@ -104,8 +83,7 @@ class CacheableFunction:
         metadata: Optional[dict] = None,
         version_id_fn: Optional[Callable] = None,
         input_id_fn: Optional[Callable] = None,
-        dump_fn: Optional[Callable[[Any, Path], None]] = None,
-        load_fn: Optional[Callable[[Path], Any]] = None,
+        serializer: Optional[Serializer] = None,
     ):
         self._fn = fn
         self._base_path = base_path or os.getcwd()
@@ -113,8 +91,7 @@ class CacheableFunction:
         self._metadata = metadata or {}
         self._version_id_fn = version_id_fn or compute_version_id
         self._input_id_fn = input_id_fn or compute_input_id
-        self._dump_fn = dump_fn or pickle_dump
-        self._load_fn = load_fn or pickle_load
+        self._serializer = serializer or PickleSerializer()
         self._read: Optional[bool] = None  # None acts as an overridable False
         self._write: Optional[bool] = None  # None acts as an overridable False
         self._logger = logger.bind(fn_name=self._name)
@@ -237,7 +214,7 @@ class CacheableFunction:
 
     def _read_from_cache(self, path):
         try:
-            return self._load_fn(path)
+            return self._serializer.load(path)
         except Exception as error:
             raise LoadException(str(error)) from error
 
@@ -255,7 +232,7 @@ class CacheableFunction:
         try:
             with tempfile.TemporaryDirectory() as tmp_path:
                 tmp_path = Path(tmp_path)
-                self._dump_fn(result, tmp_path)
+                self._serializer.dump(result, tmp_path)
                 assert tmp_path.exists(), f"{tmp_path} (for {path}) does not exist."
                 assert tmp_path.is_dir(), f"{tmp_path} (for {path}) is not a folder."
                 assert any(
@@ -324,8 +301,7 @@ def cacheable(
     metadata: Optional[dict] = None,
     version_id_fn: Optional[Callable] = None,
     input_id_fn: Optional[Callable] = None,
-    dump_fn: Optional[Callable[[Any, Path], None]] = None,
-    load_fn: Optional[Callable[[Path], Any]] = None,
+    serializer: Optional[Serializer] = None
 ) -> Callable[[Callable], CacheableFunction]:
     def decorator(fn: Callable) -> CacheableFunction:
         return CacheableFunction(
@@ -335,8 +311,7 @@ def cacheable(
             metadata=metadata,
             version_id_fn=version_id_fn,
             input_id_fn=input_id_fn,
-            dump_fn=dump_fn,
-            load_fn=load_fn,
+            serializer=serializer
         )
 
     # when cacheable is used as @cacheable without parentheses,
