@@ -48,7 +48,9 @@ When the cache is enabled, the following happens:
 
 A cache path (which is always a directory) looks as follows:
 
-`<base_path>/<name>/versions/<version_id>/inputs/<input_id>/outputs/`
+```
+<base_path>/<name>/versions/<version_id>/inputs/<input_id>/outputs/
+```
 
 ### `input-id`
 
