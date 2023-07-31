@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-from cacheable import (
+from cacheables import (
     CacheableFunction,
     cacheable,
     disable_cache,

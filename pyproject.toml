@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "cacheable"
+name = "cacheables"
 version = "0.1.0"
 description = ""
-authors = ["Thom Lane <thom.lane@clarity.ai>"]
+authors = ["Thom Lane <thom.e.lane@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

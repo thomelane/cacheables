@@ -1,6 +1,6 @@
-# Cacheable
+# Cacheables
 
-Cacheable is a module that make it easy to cache function results. You'll be
+Cacheables is a module that make it easy to cache function results. You'll be
 able to experiment faster (by avoiding repeated work) and keep track of your
 experiments with out-of-the-box versioning.
 
