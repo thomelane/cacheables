@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "cacheables"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["Thom Lane <thom.e.lane@gmail.com>"]
 readme = "README.md"
+repository = "https://github.com/thomelane/cacheables"
 
 [tool.poetry.dependencies]
 python = "^3.11"
