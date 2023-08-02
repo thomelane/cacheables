@@ -75,7 +75,7 @@ class CacheableFunction:
         serializer: Optional[Serializer] = None,
     ):
         self._fn = fn
-        self._base_path = base_path or os.getcwd()
+        self._base_path = base_path or os.getcwd() + "/.cacheables"
         self._name = name or fn.__name__
         self._metadata = metadata or {}
         self._version_id_fn = version_id_fn or compute_version_id
