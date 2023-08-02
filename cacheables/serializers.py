@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 
 class Serializer(ABC):
     @abstractmethod
-    def dump(self, path: Path, value: Any):
+    def dump(self, value: Any, path: Path):
         pass
 
     @abstractmethod
@@ -19,7 +19,7 @@ class JsonSerializer(Serializer):
     def _get_path(self, path: Path):
         return path / "output.json"
 
-    def dump(self, value: Path, path: Any):
+    def dump(self, value: Any, path: Path):
         filepath = self._get_path(path)
         with open(filepath, "w", encoding="utf-8") as file:
             json.dump(value, file, indent=4)
@@ -34,7 +34,7 @@ class PickleSerializer(Serializer):
     def _get_path(self, path: Path):
         return path / "output.pickle"
 
-    def dump(self, value: Path, path: Any):
+    def dump(self, value: Any, path: Path):
         filepath = self._get_path(path)
         with open(filepath, "wb") as file:
             pickle.dump(value, file)

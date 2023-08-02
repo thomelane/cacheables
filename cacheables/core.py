@@ -11,11 +11,18 @@ import sys
 import tempfile
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from loguru import logger
 
 from .serializers import Serializer, PickleSerializer
+from .exceptions import (
+    InputIdException,
+    VersionIdException,
+    LoadException,
+    DumpException,
+    MissingResultException
+)
 
 
 logger.disable(__name__)
@@ -52,26 +59,6 @@ def compute_version_id(name: str, metadata: dict) -> str:
         sorted(metadata.items())
     )  # Sort the items for consistent results.
     return hashlib.md5(str_to_hash.encode("utf-8")).hexdigest()
-
-
-class DumpException(Exception):
-    pass
-
-
-class LoadException(Exception):
-    pass
-
-
-class MissingResultException(Exception):
-    pass
-
-
-class VersionIdException(Exception):
-    pass
-
-
-class InputIdException(Exception):
-    pass
 
 
 class CacheableFunction:
@@ -393,31 +380,3 @@ def enable_cache(read: bool = True, write: bool = True):
 def disable_cache():
     with enable_cache(read=False, write=False):
         yield
-
-
-def cacheable(
-    _fn: Optional[Callable] = None,  # enable @cacheable() and @cacheable usage
-    base_path: Optional[str] = None,
-    name: Optional[str] = None,
-    metadata: Optional[dict] = None,
-    version_id_fn: Optional[Callable] = None,
-    input_id_fn: Optional[Callable] = None,
-    serializer: Optional[Serializer] = None
-) -> Callable[[Callable], CacheableFunction]:
-    def decorator(fn: Callable) -> CacheableFunction:
-        return CacheableFunction(
-            fn=fn,
-            base_path=base_path,
-            name=name,
-            metadata=metadata,
-            version_id_fn=version_id_fn,
-            input_id_fn=input_id_fn,
-            serializer=serializer
-        )
-
-    # when cacheable is used as @cacheable without parentheses,
-    # _fn is the function to be decorated.
-    if _fn is not None:
-        return decorator(_fn)
-
-    return decorator
