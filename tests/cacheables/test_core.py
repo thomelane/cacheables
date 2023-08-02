@@ -12,8 +12,7 @@ from cacheables import (
     cacheable,
     disable_cache,
     enable_cache,
-    pickle_dump,
-    pickle_load,
+    PickleSerializer
 )
 
 
@@ -21,15 +20,16 @@ from cacheables import (
 def observable_foo(
     tmp_path,
 ) -> Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]:
-    load_fn = mock.Mock(side_effect=pickle_load)
-    dump_fn = mock.Mock(side_effect=pickle_dump)
+    serializer = PickleSerializer()
+    serializer.dump = mock.Mock(side_effect=serializer.dump)
+    serializer.load = mock.Mock(side_effect=serializer.load)
     inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
 
-    @cacheable(base_path=tmp_path, load_fn=load_fn, dump_fn=dump_fn)
+    @cacheable(base_path=tmp_path, serializer=serializer)
     def foo(a: int, b: int) -> int:
         return inner_fn(a, b)
 
-    return foo, inner_fn, load_fn, dump_fn
+    return foo, inner_fn, serializer.load, serializer.dump
 
 
 def test_cacheable(tmpdir):
@@ -212,46 +212,54 @@ def test_cacheable_with_load_fn_error(tmpdir):
     def load_fn(path):
         raise ValueError("An error occurred in load_fn.")
 
-    dump_fn = mock.Mock(side_effect=pickle_dump)
+    serializer = PickleSerializer()
+    serializer.dump = mock.Mock(side_effect=serializer.dump)
+    serializer.load = mock.Mock(side_effect=load_fn)
 
-    @cacheable(base_path=tmpdir, load_fn=load_fn, dump_fn=dump_fn)
+    @cacheable(base_path=tmpdir, serializer=serializer)
     def foo(a: int, b: int) -> int:
         return a + b
 
     with foo.enable_cache():
         assert foo(1, 2) == 3
         assert foo(1, 2) == 3
-    assert dump_fn.call_count == 2
+    assert serializer.dump.call_count == 2
 
 
 def test_cacheable_with_dump_fn_noop(tmpdir):
-    load_fn = mock.Mock(side_effect=lambda path: None)
-    dump_fn = mock.Mock(side_effect=lambda obj, path: None)
+    def dump_fn(value, path):
+        return None
 
-    @cacheable(base_path=tmpdir, load_fn=load_fn, dump_fn=dump_fn)
+    serializer = PickleSerializer()
+    serializer.dump = mock.Mock(side_effect=dump_fn)
+    serializer.load = mock.Mock(side_effect=serializer.load)
+
+    @cacheable(base_path=tmpdir, serializer=serializer)
     def foo(a: int, b: int) -> int:
         return a + b
 
     with foo.enable_cache():
         assert foo(1, 2) == 3
         assert foo(1, 2) == 3
-    load_fn.assert_not_called()
+    serializer.load.assert_not_called()
 
 
 def test_cacheable_with_dump_fn_error(tmpdir):
-    load_fn = mock.Mock(side_effect=lambda path: None)
-
-    def dump_fn(obj, path):
+    def dump_fn(value, path):
         raise ValueError("An error occurred in dump_fn.")
 
-    @cacheable(base_path=tmpdir, load_fn=load_fn, dump_fn=dump_fn)
+    serializer = PickleSerializer()
+    serializer.dump = mock.Mock(side_effect=dump_fn)
+    serializer.load = mock.Mock(side_effect=serializer.load)
+
+    @cacheable(base_path=tmpdir, serializer=serializer)
     def foo(a: int, b: int) -> int:
         return a + b
 
     with foo.enable_cache():
         assert foo(1, 2) == 3
         assert foo(1, 2) == 3
-    load_fn.assert_not_called()
+    serializer.load.assert_not_called()
 
 
 def test_cacheable_cache_read_only(
