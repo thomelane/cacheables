@@ -12,7 +12,8 @@ from cacheables import (
     cacheable,
     disable_cache,
     enable_cache,
-    PickleSerializer
+    PickleSerializer,
+    DiskBackend
 )
 
 
@@ -25,7 +26,7 @@ def observable_foo(
     serializer.load = mock.Mock(side_effect=serializer.load)
     inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
 
-    @cacheable(base_path=tmp_path, serializer=serializer)
+    @cacheable(backend=DiskBackend(base_path=tmp_path, serializer=serializer))
     def foo(a: int, b: int) -> int:
         return inner_fn(a, b)
 
@@ -33,18 +34,16 @@ def observable_foo(
 
 
 def test_cacheable(tmpdir):
-    @cacheable(base_path=tmpdir)
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
     def foo(a: int, b: int) -> int:
         return a + b
 
-    result = foo(1, 2)
-    assert result == 3
-    file_path = foo.get_path_from_inputs(1, 2)
-    assert not os.path.exists(file_path)
+    output = foo(1, 2)
+    assert output == 3
 
 
 def test_cacheable_with_complex_args(tmpdir):
-    @cacheable(base_path=tmpdir)
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
     def foo(lst: list, dct: dict) -> int:
         return len(lst) + len(dct)
 
@@ -53,19 +52,18 @@ def test_cacheable_with_complex_args(tmpdir):
 
 
 def test_cacheable_function_no_args(tmpdir):
-    @cacheable(base_path=tmpdir)
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
     def foo() -> str:
         return "no arguments here"
 
     result = foo()
-    foo.get_path_from_inputs()
     assert result == "no arguments here"
 
 
 def test_cacheable_cache_enabled(tmpdir):
     inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
 
-    @cacheable(base_path=tmpdir)
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
     def foo(a: int, b: int) -> int:
         return inner_fn(a, b)
 
@@ -78,134 +76,70 @@ def test_cacheable_cache_enabled(tmpdir):
         assert foo(1, 2) == 3
         inner_fn.assert_called_once()
 
-    path = foo.get_path_from_inputs(1, 2)
-    assert os.path.exists(path)
-
 
 def test_cacheable_cache_path(tmpdir):
-    @cacheable(base_path=tmpdir)
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
     def foo(a: int, b: int) -> int:
         return a + b
 
     expected_path = Path(
         str(tmpdir),
         "functions",
-        "foo",
+        foo._get_function_id(),
         "versions",
-        foo._version_id_fn(foo._name, foo._metadata),
+        foo._get_version_id(),
         "inputs",
-        foo._input_id_fn(1, 2),
-        "outputs",
+        foo._get_input_id(1, 2),
+        "output"
     )
 
-    file_path = foo.get_path_from_inputs(1, 2)
+    input_key = foo.get_input_key(1, 2)
+    file_path = foo._backend._construct_output_path(input_key)
     assert file_path == expected_path
 
 
 def test_cacheable_version_id(tmpdir):
-    @cacheable(base_path=tmpdir, name="shared", metadata={"version": 1})
-    def foo(result):
-        return result
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    def foo(a, b):
+        return a + b
 
-    @cacheable(base_path=tmpdir, name="shared", metadata={"version": 1})
-    def bar(result):
-        return result
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    def bar(a, b):
+        # different implementation, but signature is the same
+        # so same version id
+        return a * b
 
-    @cacheable(base_path=tmpdir, name="shared", metadata={"version": 2})
-    def baz(result):
-        return result
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    def baz(a, b, c):
+        return a + b + c
 
     assert foo._get_version_id() == bar._get_version_id()
     assert foo._get_version_id() != baz._get_version_id()
 
 
 def test_cacheable_change_metadata(tmpdir):
-    @cacheable(base_path=tmpdir, metadata={"version": 1})
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
     def foo(_) -> int:
         return 1
 
     with foo.enable_cache():
         assert foo(1) == 1
 
-    # changed implementation but didn't update version
-    @cacheable(base_path=tmpdir, metadata={"version": 1})
+    # changed implementation but didn't update version/signature
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
     def foo(_) -> int:  # pylint: disable=function-redefined
         return 2
 
     with foo.enable_cache():
         assert foo(1) == 1  # should still return the old cached result
 
-    # updated version this time
-    @cacheable(base_path=tmpdir, metadata={"version": 2})
-    def foo(_) -> int:  # pylint: disable=function-redefined
+    # updated version/signature this time
+    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    def foo(_, blank=None) -> int:  # pylint: disable=function-redefined
         return 2
 
     with foo.enable_cache():
         assert foo(1) == 2
-
-
-def test_cacheable_with_version_id_fn_error(tmpdir):
-    def version_id_fn(name: str, metadata: dict):
-        raise ValueError("An error occurred in version_id_fn.")
-
-    inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
-
-    @cacheable(base_path=tmpdir, version_id_fn=version_id_fn)
-    def foo(a: int, b: int) -> int:
-        return inner_fn(a, b)
-
-    with foo.enable_cache():
-        assert foo(1, 2) == 3
-        assert foo(1, 2) == 3
-    assert inner_fn.call_count == 2
-
-
-def test_cacheable_with_version_id_fn_empty(tmpdir):
-    def version_id_fn(_):
-        return None
-
-    inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
-
-    @cacheable(base_path=tmpdir, version_id_fn=version_id_fn)
-    def foo(a: int, b: int) -> int:
-        return inner_fn(a, b)
-
-    with foo.enable_cache():
-        assert foo(1, 2) == 3
-        assert foo(1, 2) == 3
-    assert inner_fn.call_count == 2
-
-
-def test_cacheable_with_input_id_fn_error(tmpdir):
-    def input_id_fn(*args, **kwargs):
-        raise ValueError("An error occurred in input_id_fn.")
-
-    inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
-
-    @cacheable(base_path=tmpdir, input_id_fn=input_id_fn)
-    def foo(a: int, b: int) -> int:
-        return inner_fn(a, b)
-
-    with foo.enable_cache():
-        assert foo(1, 2) == 3
-        assert foo(1, 2) == 3
-    assert inner_fn.call_count == 2
-
-
-def test_cacheable_with_input_id_fn_empty(tmpdir):
-    def input_id_fn(*args, **kwargs):  # pylint: disable=unused-argument
-        return None
-
-    inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
-
-    @cacheable(base_path=tmpdir, input_id_fn=input_id_fn)
-    def foo(a: int, b: int) -> int:
-        return inner_fn(a, b)
-
-    with foo.enable_cache():
-        assert foo(1, 2) == 3
-        assert foo(1, 2) == 3
-    assert inner_fn.call_count == 2
 
 
 def test_cacheable_with_load_fn_error(tmpdir):
@@ -216,7 +150,7 @@ def test_cacheable_with_load_fn_error(tmpdir):
     serializer.dump = mock.Mock(side_effect=serializer.dump)
     serializer.load = mock.Mock(side_effect=load_fn)
 
-    @cacheable(base_path=tmpdir, serializer=serializer)
+    @cacheable(backend=DiskBackend(base_path=tmpdir, serializer=serializer))
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -234,7 +168,7 @@ def test_cacheable_with_dump_fn_noop(tmpdir):
     serializer.dump = mock.Mock(side_effect=dump_fn)
     serializer.load = mock.Mock(side_effect=serializer.load)
 
-    @cacheable(base_path=tmpdir, serializer=serializer)
+    @cacheable(backend=DiskBackend(base_path=tmpdir, serializer=serializer))
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -252,7 +186,7 @@ def test_cacheable_with_dump_fn_error(tmpdir):
     serializer.dump = mock.Mock(side_effect=dump_fn)
     serializer.load = mock.Mock(side_effect=serializer.load)
 
-    @cacheable(base_path=tmpdir, serializer=serializer)
+    @cacheable(backend=DiskBackend(base_path=tmpdir, serializer=serializer))
     def foo(a: int, b: int) -> int:
         return a + b
 

@@ -1,27 +1,23 @@
 from typing import Callable, Optional
 
 from .core import CacheableFunction
-from .serializers import Serializer
+from .backends import Backend
 
 
 def cacheable(
     _fn: Optional[Callable] = None,  # enable @cacheable() and @cacheable usage
-    base_path: Optional[str] = None,
-    name: Optional[str] = None,
-    metadata: Optional[dict] = None,
-    version_id_fn: Optional[Callable] = None,
-    input_id_fn: Optional[Callable] = None,
-    serializer: Optional[Serializer] = None
+    backend: Optional[Backend] = None,
+    exclude_args_fn: Optional[Callable] = None,
+    created_at: bool = True,
+    last_accessed_at: bool = True,
+    git_hash: bool = True,
+    code_hash: bool = True
 ) -> Callable[[Callable], CacheableFunction]:
     def decorator(fn: Callable) -> CacheableFunction:
         return CacheableFunction(
             fn=fn,
-            base_path=base_path,
-            name=name,
-            metadata=metadata,
-            version_id_fn=version_id_fn,
-            input_id_fn=input_id_fn,
-            serializer=serializer
+            backend=backend,
+            exclude_args_fn=exclude_args_fn
         )
 
     # when cacheable is used as @cacheable without parentheses,
