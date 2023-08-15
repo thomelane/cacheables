@@ -49,7 +49,8 @@ When the cache is enabled, the following happens:
 A cache path (which is always a directory) looks as follows:
 
 ```
-<base_path>/functions/<function_id>/versions/<version_id>/inputs/<input_id>/outputs/
+<base_path>/functions/<function_id>/inputs/<input_id>/output.pickle
+<base_path>/functions/<function_id>/inputs/<input_id>/metadata.json
 ```
 
 ### `input-id`

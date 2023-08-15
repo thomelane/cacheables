@@ -1,8 +1,8 @@
-class DumpException(Exception):
+class WriteException(Exception):
     pass
 
 
-class LoadException(Exception):
+class ReadException(Exception):
     pass
 
 

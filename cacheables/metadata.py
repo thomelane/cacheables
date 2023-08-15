@@ -3,16 +3,18 @@ import subprocess
 
 from loguru import logger
 
-from .keys import VersionKey
+from .keys import InputKey
 
 
-def create_version_metadata(
-    version_key: VersionKey
+def create_metadata(
+    input_key: InputKey
 ) -> dict:
+    current_time = datetime.datetime.utcnow().isoformat() + "Z"
     metadata = {
-        "function_id": version_key.function_id,
-        "version_id": version_key.version_id,
-        "created_at": datetime.datetime.utcnow().isoformat() + "Z"
+        "function_id": input_key.function_id,
+        "input_id": input_key.input_id,
+        "created_at": current_time,
+        "last_accessed_at": current_time,
     }
     try:
         metadata["git_commit_hash"] = (
