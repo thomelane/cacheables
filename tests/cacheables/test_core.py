@@ -12,7 +12,7 @@ from cacheables import (
     disable_cache,
     enable_cache,
     PickleSerializer,
-    DiskBackend
+    DiskCache
 )
 
 
@@ -25,7 +25,7 @@ def observable_foo(
     serializer.deserialize = mock.Mock(side_effect=serializer.deserialize)
     inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
 
-    @cacheable(backend=DiskBackend(base_path=tmp_path, serializer=serializer))
+    @cacheable(cache=DiskCache(base_path=tmp_path, serializer=serializer))
     def foo(a: int, b: int) -> int:
         return inner_fn(a, b)
 
@@ -33,7 +33,7 @@ def observable_foo(
 
 
 def test_cacheable(tmpdir):
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -42,7 +42,7 @@ def test_cacheable(tmpdir):
 
 
 def test_cacheable_with_complex_args(tmpdir):
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(lst: list, dct: dict) -> int:
         return len(lst) + len(dct)
 
@@ -51,7 +51,7 @@ def test_cacheable_with_complex_args(tmpdir):
 
 
 def test_cacheable_function_no_args(tmpdir):
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo() -> str:
         return "no arguments here"
 
@@ -62,7 +62,7 @@ def test_cacheable_function_no_args(tmpdir):
 def test_cacheable_cache_enabled(tmpdir):
     inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
 
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(a: int, b: int) -> int:
         return inner_fn(a, b)
 
@@ -77,7 +77,7 @@ def test_cacheable_cache_enabled(tmpdir):
 
 
 def test_cacheable_cache_path(tmpdir):
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -91,12 +91,12 @@ def test_cacheable_cache_path(tmpdir):
     )
 
     input_key = foo._get_input_key(1, 2)
-    file_path = foo._backend._construct_output_path(input_key)
+    file_path = foo._cache._construct_output_path(input_key)
     assert file_path == expected_path
 
 
 def test_cacheable_change_metadata(tmpdir):
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(_) -> int:
         return 1
 
@@ -104,7 +104,7 @@ def test_cacheable_change_metadata(tmpdir):
         assert foo(1) == 1
 
     # changed implementation but didn't update version/signature
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(_) -> int:  # pylint: disable=function-redefined
         return 2
 
@@ -112,7 +112,7 @@ def test_cacheable_change_metadata(tmpdir):
         assert foo(1) == 1  # should still return the old cached result
 
     # updated version/signature this time
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(_, blank=None) -> int:  # pylint: disable=function-redefined
         return 2
 
@@ -128,7 +128,7 @@ def test_cacheable_with_deserialize_error(tmpdir):
     serializer.serialize = mock.Mock(side_effect=serializer.serialize)
     serializer.deserialize = mock.Mock(side_effect=deserialize)
 
-    @cacheable(backend=DiskBackend(base_path=tmpdir, serializer=serializer))
+    @cacheable(cache=DiskCache(base_path=tmpdir, serializer=serializer))
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -146,7 +146,7 @@ def test_cacheable_with_serialize_error(tmpdir):
     serializer.serialize = mock.Mock(side_effect=serialize)
     serializer.deserialize = mock.Mock(side_effect=serializer.deserialize)
 
-    @cacheable(backend=DiskBackend(base_path=tmpdir, serializer=serializer))
+    @cacheable(cache=DiskCache(base_path=tmpdir, serializer=serializer))
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -278,7 +278,7 @@ def test_cacheable_disable_cache_via_env_var(
 
 
 def test_cacheable_read(tmpdir):
-    @cacheable(backend=DiskBackend(base_path=tmpdir))
+    @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo(a: int, b: int) -> int:
         return a + b
 

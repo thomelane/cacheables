@@ -5,7 +5,7 @@ from .core import CacheableFunction
 
 @click.group()
 def cacheables():
-    """Manage cache for CacheableFunction."""
+    """Manage caches of cacheable functions."""
     pass
 
 
@@ -43,7 +43,7 @@ def adopt(function_id, function_name):
     """
     Adopt another cacheable function's cache.
     Useful after a function rename to preserve the original cache.
-    Assumes the other cache used the same backend.
+    Assumes both caches are of the same type (i.e. both DiskCache).
     """
     _ = load_function_from_path(function_name)
     print(f"Renaming {function_id} to {function_name}")
@@ -53,7 +53,7 @@ def adopt(function_id, function_name):
 @click.argument('function_name')
 def delete(function_name):
     """
-    Delete (all or part of) a cacheable function's cache.
+    Delete (all or part of) a cache.
     Useful for invalidating cache and/or reducing cache size.
     """
     _ = load_function_from_path(function_name)

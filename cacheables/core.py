@@ -15,7 +15,7 @@ from .exceptions import (
     WriteException,
     MissingOutputException
 )
-from .backends import Backend, DiskBackend
+from .caches import Cache, DiskCache
 from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
 
@@ -47,15 +47,15 @@ class CacheableFunction:
         self,
         fn: Callable,
         function_id: Optional[str] = None,
-        backend: Optional[Backend] = None,
+        cache: Optional[Cache] = None,
         exclude_args_fn: Optional[Callable] = None,
     ):
         self._fn = fn
         self._function_id = function_id or self.get_function_id()
-        self._backend = backend or DiskBackend()
+        self._cache = cache or DiskCache()
         self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
-        self._read: Optional[bool] = None  # None acts as an overridable False
-        self._write: Optional[bool] = None  # None acts as an overridable False
+        self._read: Optional[bool] = None  # None acts as an overridable False  # cache-property
+        self._write: Optional[bool] = None  # None acts as an overridable False  # cache-property
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
         self.__class__._instances.add(self)
@@ -112,10 +112,10 @@ class CacheableFunction:
             return output
 
         if self._read:
-            if self._backend.exists(input_key):
+            if self._cache.exists(input_key):
                 try:
                     self._logger.info("reading output from cache")
-                    return self._backend.read(input_key)
+                    return self._cache.read_output(input_key)
                 except ReadException as error:
                     warning_msg = f"failed to read output from cache: {error}"
                     self._logger.warning(warning_msg)
@@ -130,7 +130,7 @@ class CacheableFunction:
             try:
                 self._logger.info("writing output to cache")
                 metadata = create_metadata(input_key)
-                self._backend.write(output, metadata, input_key)
+                self._cache.write_output(output, metadata, input_key)
             except WriteException as error:
                 message_msg = f"failed to write output to cache: {error}"
                 self._logger.warning(message_msg)
@@ -138,6 +138,7 @@ class CacheableFunction:
 
         return output
 
+    # cache-property
     @contextlib.contextmanager
     def enable_cache(self, read: bool = True, write: bool = True):
         previous_read, previous_write = self._read, self._write
@@ -151,21 +152,24 @@ class CacheableFunction:
         finally:
             self._read, self._write = previous_read, previous_write
 
+    # cache-property
     @contextlib.contextmanager
     def disable_cache(self):
         with self.enable_cache(read=False, write=False):
             yield
 
+    # cache-property
     def read(self, input_id: str):
         # should abide by DISABLE_CACHEABLE
         input_key = InputKey(
             function_id=self._function_id,
             input_id=input_id,
         )
-        if not self._backend.exists(input_key):
+        if not self._cache.exists(input_key):
             raise MissingOutputException("output not found in cache")
-        return self._backend.read(input_key)
+        return self._cache.read_output(input_key)
 
+    # cache-property
     def write(self, output: Any, input_id: str):
         # should abide by DISABLE_CACHEABLE
         input_key = InputKey(
@@ -173,7 +177,7 @@ class CacheableFunction:
             input_id=input_id,
         )
         metadata = create_metadata(input_key)
-        return self._backend.write(output, metadata, input_key)
+        return self._cache.write_output(output, metadata, input_key)
 
 
 # should be a classmethod, but `enable_cache` is an instance method

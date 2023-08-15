@@ -11,7 +11,7 @@ import tempfile
 import shutil
 import datetime
 
-from .backend import Backend
+from .cache import Cache
 from ..serializers import Serializer, PickleSerializer
 from ..keys import FunctionKey, InputKey
 from ..exceptions import (
@@ -20,7 +20,7 @@ from ..exceptions import (
 )
 
 
-class DiskBackend(Backend):
+class DiskCache(Cache):
 
     def __init__(
         self,
@@ -88,7 +88,7 @@ class DiskBackend(Backend):
         output_path = self._construct_output_path(input_key)
         return output_path.exists() and output_path.is_file()
     
-    def read(self, input_key: InputKey) -> Any:
+    def read_output(self, input_key: InputKey) -> Any:
         try:
             metadata_path = self._construct_input_metadata_path(input_key)
             with open(metadata_path, "r", encoding="utf-8") as file:
@@ -104,7 +104,7 @@ class DiskBackend(Backend):
         except Exception as error:
             raise ReadException(str(error)) from error
         
-    def write(self, output: Any, metadata: dict, input_key: InputKey) -> None:
+    def write_output(self, output: Any, metadata: dict, input_key: InputKey) -> None:
         """
         A close to "atomic" write to the cache. We dump the result to a temporary folder
         first, instead of directly to the cache path. Avoids the issue of partially

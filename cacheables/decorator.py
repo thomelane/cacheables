@@ -1,20 +1,20 @@
 from typing import Callable, Optional
 
 from .core import CacheableFunction
-from .backends import Backend
+from .caches import Cache
 
 
 def cacheable(
     _fn: Optional[Callable] = None,  # enable @cacheable() and @cacheable usage
     function_id: Optional[str] = None,
-    backend: Optional[Backend] = None,
+    cache: Optional[Cache] = None,
     exclude_args_fn: Optional[Callable] = None
 ) -> Callable[[Callable], CacheableFunction]:
     def decorator(fn: Callable) -> CacheableFunction:
         return CacheableFunction(
             fn=fn,
             function_id=function_id,
-            backend=backend,
+            cache=cache,
             exclude_args_fn=exclude_args_fn
         )
 
