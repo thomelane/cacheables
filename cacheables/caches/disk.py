@@ -27,6 +27,7 @@ class DiskCache(Cache):
         base_path: Optional[Union[str, Path]] = None,
         serializer: Optional[Serializer] = None,
     ):
+        super().__init__()
         self._base_path = base_path or os.getcwd() + "/.cacheables"
         self._serializer = serializer or PickleSerializer()
 
@@ -138,3 +139,9 @@ class DiskCache(Cache):
                 # tempfile handles cleanup of temporary folder
         except Exception as error:
             raise WriteException(str(error)) from error
+
+    def output_path(self, input_key: InputKey) -> Optional[str]:
+        output_path = self._construct_output_path(input_key)
+        if output_path.exists():
+            return str(output_path)
+        return None

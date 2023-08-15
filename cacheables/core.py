@@ -41,8 +41,6 @@ def enable_debug_logging():
 
 
 class CacheableFunction:
-    _instances = set()  # used to enable/disable cache on all cacheable functions
-
     def __init__(
         self,
         fn: Callable,
@@ -52,13 +50,10 @@ class CacheableFunction:
     ):
         self._fn = fn
         self._function_id = function_id or self.get_function_id()
-        self._cache = cache or DiskCache()
+        self.cache = cache or DiskCache()
         self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
-        self._read: Optional[bool] = None  # None acts as an overridable False  # cache-property
-        self._write: Optional[bool] = None  # None acts as an overridable False  # cache-property
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
-        self.__class__._instances.add(self)
 
     def get_function_id(self) -> str:
         return f"{self._fn.__module__}:{self._fn.__qualname__}"
@@ -92,13 +87,11 @@ class CacheableFunction:
         )
 
     def __call__(self, *args, **kwargs):
-        if os.getenv("DISABLE_CACHEABLE", "false").lower() == "true":
-            warning_msg = (
-                "executing cacheable functions without cache "
-                "(because DISABLE_CACHEABLE=true)"
-            )
-            warnings.warn(warning_msg)
-            self._logger.debug(warning_msg.replace("functions", "function"))
+        read = self.cache.is_read_enabled()
+        write = self.cache.is_write_enabled()
+
+        if not (read or write):
+            self._logger.debug("executing function without cache")
             return self._fn(*args, **kwargs)
 
         try:
@@ -111,11 +104,11 @@ class CacheableFunction:
             output = self._fn(*args, **kwargs)
             return output
 
-        if self._read:
-            if self._cache.exists(input_key):
+        if read:
+            if self.cache.exists(input_key):
                 try:
                     self._logger.info("reading output from cache")
-                    return self._cache.read_output(input_key)
+                    return self.cache.read_output(input_key)
                 except ReadException as error:
                     warning_msg = f"failed to read output from cache: {error}"
                     self._logger.warning(warning_msg)
@@ -126,11 +119,11 @@ class CacheableFunction:
         self._logger.debug("executing function")
         output = self._fn(*args, **kwargs)
 
-        if self._write:
+        if write:
             try:
                 self._logger.info("writing output to cache")
                 metadata = create_metadata(input_key)
-                self._cache.write_output(output, metadata, input_key)
+                self.cache.write_output(output, metadata, input_key)
             except WriteException as error:
                 message_msg = f"failed to write output to cache: {error}"
                 self._logger.warning(message_msg)
@@ -139,35 +132,15 @@ class CacheableFunction:
         return output
 
     # cache-property
-    @contextlib.contextmanager
-    def enable_cache(self, read: bool = True, write: bool = True):
-        previous_read, previous_write = self._read, self._write
-        # most restrictive settings will be used
-        self._read = (read and previous_read) if (previous_read is not None) else read
-        self._write = (
-            (write and previous_write) if (previous_write is not None) else write
-        )
-        try:
-            yield
-        finally:
-            self._read, self._write = previous_read, previous_write
-
-    # cache-property
-    @contextlib.contextmanager
-    def disable_cache(self):
-        with self.enable_cache(read=False, write=False):
-            yield
-
-    # cache-property
     def read(self, input_id: str):
         # should abide by DISABLE_CACHEABLE
         input_key = InputKey(
             function_id=self._function_id,
             input_id=input_id,
         )
-        if not self._cache.exists(input_key):
+        if not self.cache.exists(input_key):
             raise MissingOutputException("output not found in cache")
-        return self._cache.read_output(input_key)
+        return self.cache.read_output(input_key)
 
     # cache-property
     def write(self, output: Any, input_id: str):
@@ -177,24 +150,4 @@ class CacheableFunction:
             input_id=input_id,
         )
         metadata = create_metadata(input_key)
-        return self._cache.write_output(output, metadata, input_key)
-
-
-# should be a classmethod, but `enable_cache` is an instance method
-# and this gives a clean interface for enabling cache on all cacheable functions
-@contextlib.contextmanager
-def enable_cache(read: bool = True, write: bool = True):
-    with contextlib.ExitStack() as stack:
-        for (
-            instance
-        ) in CacheableFunction._instances:  # pylint: disable=protected-access
-            stack.enter_context(instance.enable_cache(read=read, write=write))
-        yield
-
-
-# should be a classmethod, but `disable_cache` is an instance method
-# and this gives a clean interface for disabling cache on all cacheable functions
-@contextlib.contextmanager
-def disable_cache():
-    with enable_cache(read=False, write=False):
-        yield
+        return self.cache.write_output(output, metadata, input_key)
