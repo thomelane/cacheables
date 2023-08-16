@@ -7,15 +7,17 @@ from typing import List, Optional, Union, Any
 from pathlib import Path
 import os
 import json
-import tempfile
 import shutil
 import datetime
+
+from cacheables.keys import FunctionKey
 
 from .cache import Cache
 from ..keys import FunctionKey, InputKey
 from ..exceptions import (
     ReadException,
-    WriteException
+    WriteException,
+    InputKeyNotFoundError
 )
 
 
@@ -54,6 +56,19 @@ class DiskCache(Cache):
         input_path = self._construct_input_path(input_key)
         filename = f"{metadata['output_id']}.{metadata['serializer']['extension']}"
         return input_path / filename
+    
+    def get_output_path(self, input_key: InputKey) -> str:
+        if not self.exists(input_key):
+            raise InputKeyNotFoundError(f"{input_key} not found in cache")
+        metadata = self.read_metadata(input_key)
+        output_path = self._construct_output_path(input_key, metadata)
+        return str(output_path)
+    
+    def get_metadata(self, input_key: InputKey) -> dict:
+        if not self.exists(input_key):
+            raise InputKeyNotFoundError(f"{input_key} not found in cache")
+        metadata = self.read_metadata(input_key)
+        return metadata
 
     # input methods
 
@@ -74,13 +89,17 @@ class DiskCache(Cache):
         input_path = self._construct_input_path(input_key)
         shutil.rmtree(input_path, ignore_errors=True)
 
+    def delete_all(self, function_key: FunctionKey) -> None:
+        function_path = self._construct_function_path(function_key)
+        shutil.rmtree(function_path, ignore_errors=True)
+
     # metadata methods
 
     def write_metadata(self, metadata: dict, input_key: InputKey) -> None:
         metadata_path = self._construct_metadata_path(input_key)
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
         with open(metadata_path, "w", encoding="utf-8") as f:
-            json.dump(metadata, f)
+            json.dump(metadata, f, indent=4)
 
     def read_metadata(self, input_key: InputKey) -> dict:
         metadata_path = self._construct_metadata_path(input_key)
@@ -106,13 +125,6 @@ class DiskCache(Cache):
                 file.write(output_bytes)
         except Exception as error:
             raise WriteException(str(error)) from error
-
-    def output_path(self, input_key: InputKey) -> Optional[str]:
-        metadata = self.read_metadata(input_key)
-        output_path = self._construct_output_path(input_key, metadata)
-        if output_path.exists():
-            return str(output_path)
-        return None
     
     # last accessed
 

@@ -7,6 +7,7 @@ import sys
 import warnings
 from typing import Callable, Optional, Any
 import inspect
+from functools import lru_cache
 
 from loguru import logger
 
@@ -15,7 +16,8 @@ from .exceptions import (
     WriteException,
     LoadException,
     DumpException,
-    InputKeyNotFoundError
+    InputKeyNotFoundError,
+    CacheNotEnabledError
 )
 from .caches import Cache, DiskCache
 from .keys import FunctionKey, InputKey
@@ -69,15 +71,20 @@ class CacheableFunction:
         return FunctionKey(
             function_id=self._function_id
         )
+    
+    @lru_cache(maxsize=100)  # LRU cache for argument hashes
+    def _hash_argument(self, arg: Any) -> str:
+        arg_bytes = pickle.dumps(arg)
+        return hashlib.md5(arg_bytes).hexdigest()
 
     def get_input_id(self, *args, **kwargs) -> str:
         signature = inspect.signature(self._fn)
         bound_arguments = signature.bind(*args, **kwargs)
         bound_arguments.apply_defaults()
         arguments = bound_arguments.arguments
-        # remove excluded arguments
+        # remove excluded arguments and hash the rest
         arguments = {
-            key: value
+            key: self._hash_argument(value)
             for key, value in arguments.items()
             if not self._exclude_args_fn(key)
         }
@@ -87,10 +94,16 @@ class CacheableFunction:
         input_id = hashlib.md5(str_to_hash).hexdigest()[:16]
         return input_id
 
-    def _get_input_key(self, *args, **kwargs) -> InputKey:
+    def _get_input_key_from_args(self, *args, **kwargs) -> InputKey:
         return InputKey(
             function_id=self._function_id,
             input_id=self.get_input_id(*args, **kwargs),
+        )
+    
+    def _get_input_key_from_input_id(self, input_id: str) -> InputKey:
+        return InputKey(
+            function_id=self._function_id,
+            input_id=input_id,
         )
     
     def get_output_id(self, output: Any) -> str:
@@ -109,7 +122,7 @@ class CacheableFunction:
             return self._fn(*args, **kwargs)
 
         try:
-            input_key = self._get_input_key(*args, **kwargs)
+            input_key = self._get_input_key_from_args(*args, **kwargs)
         except Exception as error:
             warning_msg = f"failed to construct input key: {error}"
             self._logger.warning(warning_msg)
@@ -147,7 +160,7 @@ class CacheableFunction:
     def _load(self, input_key: InputKey) -> Any:
         try:
             if not self._controller.is_read_enabled():
-                raise ReadException("read not enabled")
+                raise CacheNotEnabledError("Cache reads are not enabled.")
             if not self._cache.exists(input_key):
                 raise InputKeyNotFoundError(f"{input_key} not found in cache")
             output_bytes = self._cache.read(input_key)
@@ -157,16 +170,13 @@ class CacheableFunction:
             raise LoadException(error) from error
         
     def load(self, input_id: str) -> Any:
-        input_key = InputKey(
-            function_id=self._function_id,
-            input_id=input_id,
-        )
+        input_key = self._get_input_key_from_input_id(input_id)
         return self._load(input_key)
 
     def _dump(self, output: Any, input_key: InputKey) -> None:
         try:
             if not self._controller.is_write_enabled():
-                raise WriteException("write not enabled")
+                raise CacheNotEnabledError("Cache writes are not enabled.")
             output_bytes = self._serializer.serialize(output)
             output_id = self._get_output_id_from_bytes(output_bytes)
             metadata = create_metadata(
@@ -179,14 +189,23 @@ class CacheableFunction:
             raise DumpException(error) from error
         
     def dump(self, output: Any, input_id: str) -> None:
-        input_key = InputKey(
-            function_id=self._function_id,
-            input_id=input_id,
-        )
+        input_key = self._get_input_key_from_input_id(input_id)
         return self._dump(output, input_key)
+    
+    def get_output_path(self, input_id: str) -> str:
+        input_key = self._get_input_key_from_input_id(input_id)
+        return self._cache.get_output_path(input_key)
+    
+    def get_metadata(self, input_id: str) -> dict:
+        input_key = self._get_input_key_from_input_id(input_id)
+        return self._cache.get_metadata(input_key)
     
     def enable_cache(self, read: bool = True, write: bool = True) -> contextlib.AbstractContextManager[None]:
         return self._controller.enable(read=read, write=write)
 
     def disable_cache(self) -> contextlib.AbstractContextManager[None]:
         return self._controller.disable()
+    
+    def clear_cache(self) -> None:
+        function_key = self._get_function_key()
+        self._cache.delete_all(function_key)

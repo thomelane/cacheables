@@ -27,6 +27,10 @@ class Cache(ABC):
     @abstractmethod
     def delete(self, input_key: InputKey) -> None:
         pass
+
+    @abstractmethod
+    def delete_all(self, function_key: FunctionKey) -> None:
+        pass
     
     # output methods
 
@@ -51,10 +55,10 @@ class Cache(ABC):
         pass
 
     @abstractmethod
-    def output_path(self, input_key: InputKey) -> Optional[str]:
-        """
-        path if it exists
-        """
+    def get_output_path(self, input_key: InputKey) -> str:
+        pass
+
+    def get_metadata(self, input_key: InputKey) -> dict:
         pass
 
     @abstractmethod

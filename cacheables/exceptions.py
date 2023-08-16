@@ -16,3 +16,7 @@ class DumpException(Exception):
 
 class InputKeyNotFoundError(Exception):
     pass
+
+
+class CacheNotEnabledError(Exception):
+    pass
