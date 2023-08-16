@@ -21,6 +21,26 @@ from ..exceptions import (
 )
 
 
+def copy_(src_folder: Path, dst_folder: Path):
+    if not src_folder.exists() or not src_folder.is_dir():
+        raise ValueError(f"{src_folder} does not exist or is not a directory")
+
+    if not dst_folder.exists():
+        dst_folder.mkdir(parents=True, exist_ok=True)
+
+    for item in src_folder.iterdir():
+        src_item = src_folder / item.name
+        dst_item = dst_folder / item.name
+
+        if item.is_file():
+            if not dst_item.exists():
+                shutil.copy2(src_item, dst_item)
+        elif item.is_dir():
+            move_files(src_item, dst_item)  # recursion
+    
+    shutil.rmtree(src_folder, ignore_errors=True)
+
+
 class DiskCache(Cache):
 
     def __init__(
@@ -79,13 +99,23 @@ class DiskCache(Cache):
             ) for folder in inputs_path.glob("*/")
         ]
 
-    def delete(self, input_key: InputKey) -> None:
+    def evict(self, input_key: InputKey) -> None:
         input_path = self._construct_input_path(input_key)
         shutil.rmtree(input_path, ignore_errors=True)
 
-    def delete_all(self, function_key: FunctionKey) -> None:
+    def clear(self, function_key: FunctionKey) -> None:
         function_path = self._construct_function_path(function_key)
         shutil.rmtree(function_path, ignore_errors=True)
+
+    def adopt(
+        self,
+        from_function_key: FunctionKey,
+        to_function_key: FunctionKey
+    ) -> None:
+        from_path = self._construct_function_path(from_function_key)
+        to_path = self._construct_function_path(to_function_key)
+        shutil.copytree(from_path, to_path, dirs_exist_ok=True)
+        shutil.rmtree(from_path, ignore_errors=True)
 
     # metadata methods
 

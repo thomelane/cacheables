@@ -1,7 +1,6 @@
 import contextlib
 import functools
 import hashlib
-import os
 import pickle
 import sys
 import warnings
@@ -12,8 +11,6 @@ from functools import lru_cache
 from loguru import logger
 
 from .exceptions import (
-    ReadException,
-    WriteException,
     LoadException,
     DumpException,
     InputKeyNotFoundError,
@@ -66,12 +63,12 @@ class CacheableFunction:
 
     def get_function_id(self) -> str:
         return f"{self._fn.__module__}:{self._fn.__qualname__}"
-    
+
     def _get_function_key(self) -> FunctionKey:
         return FunctionKey(
             function_id=self._function_id
         )
-    
+
     @lru_cache(maxsize=100)  # LRU cache for argument hashes
     def _hash_argument(self, arg: Any) -> str:
         arg_bytes = pickle.dumps(arg)
@@ -99,13 +96,13 @@ class CacheableFunction:
             function_id=self._function_id,
             input_id=self.get_input_id(*args, **kwargs),
         )
-    
+
     def _get_input_key_from_input_id(self, input_id: str) -> InputKey:
         return InputKey(
             function_id=self._function_id,
             input_id=input_id,
         )
-    
+
     def get_output_id(self, output: Any) -> str:
         output_bytes = self._serializer.serialize(output)
         return self._get_output_id_from_bytes(output_bytes)
@@ -210,4 +207,9 @@ class CacheableFunction:
     
     def clear_cache(self) -> None:
         function_key = self._get_function_key()
-        self._cache.delete_all(function_key)
+        self._cache.clear(function_key)
+
+    def adopt_cache(self, function_id: str) -> None:
+        from_function_key = FunctionKey(function_id=function_id)
+        to_function_key = self._get_function_key()
+        self._cache.adopt(from_function_key, to_function_key)

@@ -25,11 +25,19 @@ class Cache(ABC):
         pass
 
     @abstractmethod
-    def delete(self, input_key: InputKey) -> None:
+    def evict(self, input_key: InputKey) -> None:
         pass
 
     @abstractmethod
-    def delete_all(self, function_key: FunctionKey) -> None:
+    def clear(self, function_key: FunctionKey) -> None:
+        pass
+
+    @abstractmethod
+    def adopt(
+        self,
+        from_function_key: FunctionKey,
+        to_function_key: FunctionKey
+    ) -> None:
         pass
     
     # output methods
