@@ -25,7 +25,7 @@ def observable_foo(
     serializer.deserialize = mock.Mock(side_effect=serializer.deserialize)
     inner_fn = mock.Mock(side_effect=lambda a, b: a + b)
 
-    @cacheable(cache=DiskCache(base_path=tmp_path, serializer=serializer))
+    @cacheable(cache=DiskCache(base_path=tmp_path), serializer=serializer)
     def foo(a: int, b: int) -> int:
         return inner_fn(a, b)
 
@@ -77,22 +77,26 @@ def test_cacheable_cache_enabled(tmpdir):
 
 
 def test_cacheable_cache_path(tmpdir):
-    @cacheable(cache=DiskCache(base_path=tmpdir))
+    @cacheable(
+        cache=DiskCache(base_path=tmpdir),
+        function_id="foo",
+    )
     def foo(a: int, b: int) -> int:
         return a + b
 
     expected_path = Path(
         str(tmpdir),
         "functions",
-        foo.get_function_id(),
+        "foo",
         "inputs",
-        foo.get_input_id(1, 2),
-        "output.pickle"
+        "10dfa08ce5ecd2cb",
+        "3ca08f64e96a37c2.pickle"
     )
 
-    input_key = foo._get_input_key(1, 2)
-    file_path = foo._cache._construct_output_path(input_key)
-    assert file_path == expected_path
+    with foo.enable_cache():
+        assert foo(1, 2) == 3
+
+    assert expected_path.exists() and expected_path.is_file()
 
 
 def test_cacheable_change_metadata(tmpdir):
@@ -128,7 +132,7 @@ def test_cacheable_with_deserialize_error(tmpdir):
     serializer.serialize = mock.Mock(side_effect=serializer.serialize)
     serializer.deserialize = mock.Mock(side_effect=deserialize)
 
-    @cacheable(cache=DiskCache(base_path=tmpdir, serializer=serializer))
+    @cacheable(cache=DiskCache(base_path=tmpdir), serializer=serializer)
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -146,7 +150,7 @@ def test_cacheable_with_serialize_error(tmpdir):
     serializer.serialize = mock.Mock(side_effect=serialize)
     serializer.deserialize = mock.Mock(side_effect=serializer.deserialize)
 
-    @cacheable(cache=DiskCache(base_path=tmpdir, serializer=serializer))
+    @cacheable(cache=DiskCache(base_path=tmpdir), serializer=serializer)
     def foo(a: int, b: int) -> int:
         return a + b
 
@@ -282,8 +286,7 @@ def test_cacheable_read(tmpdir):
     def foo(a: int, b: int) -> int:
         return a + b
 
-    with foo.enable_cache():
-        assert foo(1, 2) == 3
-
+    foo.enable_cache()
+    assert foo(1, 2) == 3
     input_id = foo.get_input_id(1, 2)
-    assert foo.read(input_id) == 3
+    assert foo.load(input_id) == 3

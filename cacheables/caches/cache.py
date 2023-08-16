@@ -9,11 +9,9 @@
 # - loading/dumping a function output (given input_key)
 
 
-import contextlib
 from abc import ABC, abstractmethod
 from typing import List, Any, Optional
-
-
+import datetime
 
 from ..keys import FunctionKey, InputKey
 
@@ -37,7 +35,7 @@ class Cache(ABC):
         pass
 
     @abstractmethod
-    def read_output(self, input_key: InputKey) -> Any:
+    def read_output(self, metadata: dict, input_key: InputKey) -> bytes:
         pass
 
     @abstractmethod
@@ -45,7 +43,7 @@ class Cache(ABC):
         pass
     
     @abstractmethod
-    def write_output(self, output: Any, metadata: dict, input_key: InputKey) -> None:
+    def write_output(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
         pass
 
     @abstractmethod
@@ -58,6 +56,25 @@ class Cache(ABC):
         path if it exists
         """
         pass
+
+    @abstractmethod
+    def update_last_accessed(self, input_key: InputKey) -> None:
+        pass
+
+    @abstractmethod
+    def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:
+        pass
+
+    def read(self, input_key: InputKey) -> bytes:
+        self.update_last_accessed(input_key)
+        metadata = self.read_metadata(input_key)
+        output_bytes = self.read_output(metadata, input_key)
+        return output_bytes
+
+    def write(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
+        self.write_output(output_bytes, metadata, input_key)
+        self.write_metadata(metadata, input_key)
+        self.update_last_accessed(input_key)
 
 
 ## fix __call__ from CacheableFunction

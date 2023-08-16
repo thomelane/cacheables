@@ -2,12 +2,14 @@ from typing import Callable, Optional
 
 from .core import CacheableFunction
 from .caches import Cache
+from .serializers import Serializer
 
 
 def cacheable(
     _fn: Optional[Callable] = None,  # enable @cacheable() and @cacheable usage
     function_id: Optional[str] = None,
     cache: Optional[Cache] = None,
+    serializer: Optional[Serializer] = None,
     exclude_args_fn: Optional[Callable] = None
 ) -> Callable[[Callable], CacheableFunction]:
     def decorator(fn: Callable) -> CacheableFunction:
@@ -15,6 +17,7 @@ def cacheable(
             fn=fn,
             function_id=function_id,
             cache=cache,
+            serializer=serializer,
             exclude_args_fn=exclude_args_fn
         )
 

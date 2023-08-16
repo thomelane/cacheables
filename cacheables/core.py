@@ -13,12 +13,15 @@ from loguru import logger
 from .exceptions import (
     ReadException,
     WriteException,
-    MissingOutputException
+    LoadException,
+    DumpException,
+    InputKeyNotFoundError
 )
 from .caches import Cache, DiskCache
 from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
 from .controller import CacheController
+from .serializers import Serializer, PickleSerializer
 
 
 logger.disable(__name__)
@@ -47,12 +50,14 @@ class CacheableFunction:
         fn: Callable,
         function_id: Optional[str] = None,
         cache: Optional[Cache] = None,
+        serializer: Optional[Serializer] = None,
         exclude_args_fn: Optional[Callable] = None,
     ):
         self._fn = fn
         self._function_id = function_id or self.get_function_id()
         self._cache = cache or DiskCache()
         self._controller = CacheController()
+        self._serializer = serializer or PickleSerializer()
         self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
@@ -87,6 +92,13 @@ class CacheableFunction:
             function_id=self._function_id,
             input_id=self.get_input_id(*args, **kwargs),
         )
+    
+    def get_output_id(self, output: Any) -> str:
+        output_bytes = self._serializer.serialize(output)
+        return self._get_output_id_from_bytes(output_bytes)
+    
+    def _get_output_id_from_bytes(self, output_bytes: bytes) -> str:
+        return hashlib.md5(output_bytes).hexdigest()[:16]
 
     def __call__(self, *args, **kwargs):
         read = self._controller.is_read_enabled()
@@ -109,10 +121,10 @@ class CacheableFunction:
         if read:
             if self._cache.exists(input_key):
                 try:
-                    self._logger.info("reading output from cache")
-                    return self._cache.read_output(input_key)
-                except ReadException as error:
-                    warning_msg = f"failed to read output from cache: {error}"
+                    self._logger.info("loading output from cache")
+                    return self._load(input_key)
+                except LoadException as error:
+                    warning_msg = f"failed to load output from cache: {error}"
                     self._logger.warning(warning_msg)
                     warnings.warn(warning_msg)
             else:
@@ -123,36 +135,55 @@ class CacheableFunction:
 
         if write:
             try:
-                self._logger.info("writing output to cache")
-                metadata = create_metadata(input_key)
-                self._cache.write_output(output, metadata, input_key)
-            except WriteException as error:
-                message_msg = f"failed to write output to cache: {error}"
+                self._logger.info("dumping output to cache")
+                self._dump(output, input_key)
+            except DumpException as error:
+                message_msg = f"failed to dump output to cache: {error}"
                 self._logger.warning(message_msg)
                 warnings.warn(message_msg)
 
         return output
 
-    # cache-property
-    def read(self, input_id: str):
-        # should abide by DISABLE_CACHEABLE
+    def _load(self, input_key: InputKey) -> Any:
+        try:
+            if not self._controller.is_read_enabled():
+                raise ReadException("read not enabled")
+            if not self._cache.exists(input_key):
+                raise InputKeyNotFoundError(f"{input_key} not found in cache")
+            output_bytes = self._cache.read(input_key)
+            output = self._serializer.deserialize(output_bytes)
+            return output
+        except Exception as error:
+            raise LoadException(error) from error
+        
+    def load(self, input_id: str) -> Any:
         input_key = InputKey(
             function_id=self._function_id,
             input_id=input_id,
         )
-        if not self._cache.exists(input_key):
-            raise MissingOutputException("output not found in cache")
-        return self._cache.read_output(input_key)
+        return self._load(input_key)
 
-    # cache-property
-    def write(self, output: Any, input_id: str):
-        # should abide by DISABLE_CACHEABLE
+    def _dump(self, output: Any, input_key: InputKey) -> None:
+        try:
+            if not self._controller.is_write_enabled():
+                raise WriteException("write not enabled")
+            output_bytes = self._serializer.serialize(output)
+            output_id = self._get_output_id_from_bytes(output_bytes)
+            metadata = create_metadata(
+                input_key.input_id,
+                output_id,
+                self._serializer.metadata
+            )
+            self._cache.write(output_bytes, metadata, input_key)
+        except Exception as error:
+            raise DumpException(error) from error
+        
+    def dump(self, output: Any, input_id: str) -> None:
         input_key = InputKey(
             function_id=self._function_id,
             input_id=input_id,
         )
-        metadata = create_metadata(input_key)
-        return self._cache.write_output(output, metadata, input_key)
+        return self._dump(output, input_key)
     
     def enable_cache(self, read: bool = True, write: bool = True) -> contextlib.AbstractContextManager[None]:
         return self._controller.enable(read=read, write=write)

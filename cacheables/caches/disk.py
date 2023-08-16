@@ -12,7 +12,6 @@ import shutil
 import datetime
 
 from .cache import Cache
-from ..serializers import Serializer, PickleSerializer
 from ..keys import FunctionKey, InputKey
 from ..exceptions import (
     ReadException,
@@ -24,12 +23,10 @@ class DiskCache(Cache):
 
     def __init__(
         self,
-        base_path: Optional[Union[str, Path]] = None,
-        serializer: Optional[Serializer] = None,
+        base_path: Optional[Union[str, Path]] = None
     ):
         super().__init__()
         self._base_path = base_path or os.getcwd() + "/.cacheables"
-        self._serializer = serializer or PickleSerializer()
 
     # path construction methods
 
@@ -49,15 +46,20 @@ class DiskCache(Cache):
         inputs_path = self._construct_inputs_path(input_key.function_key)
         return inputs_path / input_key.input_id
     
-    def _construct_input_metadata_path(self, input_key: InputKey) -> Path:
+    def _construct_metadata_path(self, input_key: InputKey) -> Path:
         input_path = self._construct_input_path(input_key)
         return input_path / 'metadata.json'
     
-    def _construct_output_path(self, input_key: InputKey) -> Path:
+    def _construct_output_path(self, input_key: InputKey, metadata: dict) -> Path:
         input_path = self._construct_input_path(input_key)
-        return input_path / f"output.{self._serializer.extension}"
+        filename = f"{metadata['output_id']}.{metadata['serializer']['extension']}"
+        return input_path / filename
 
     # input methods
+
+    def exists(self, input_key: InputKey) -> bool:
+        output_path = self._construct_input_path(input_key)
+        return output_path.exists() and output_path.is_dir()
 
     def list(self, function_key: FunctionKey) -> List[InputKey]:
         inputs_path = self._construct_inputs_path(function_key)
@@ -72,76 +74,55 @@ class DiskCache(Cache):
         input_path = self._construct_input_path(input_key)
         shutil.rmtree(input_path, ignore_errors=True)
 
+    # metadata methods
+
     def write_metadata(self, metadata: dict, input_key: InputKey) -> None:
-        input_metadata_path = self._construct_input_metadata_path(input_key)
-        input_metadata_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(input_metadata_path, "w", encoding="utf-8") as f:
+        metadata_path = self._construct_metadata_path(input_key)
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f)
 
     def read_metadata(self, input_key: InputKey) -> dict:
-        input_metadata_path = self._construct_input_metadata_path(input_key)
-        with open(input_metadata_path, "r", encoding="utf-8") as f:
+        metadata_path = self._construct_metadata_path(input_key)
+        with open(metadata_path, "r", encoding="utf-8") as f:
             return json.load(f)
     
     # output methods
-
-    def exists(self, input_key: InputKey) -> bool:
-        output_path = self._construct_output_path(input_key)
-        return output_path.exists() and output_path.is_file()
     
-    def read_output(self, input_key: InputKey) -> Any:
+    def read_output(self, metadata: dict, input_key: InputKey) -> bytes:
         try:
-            metadata_path = self._construct_input_metadata_path(input_key)
-            with open(metadata_path, "r", encoding="utf-8") as file:
-                metadata = json.load(file)
-            metadata["last_accessed_at"] = datetime.datetime.utcnow().isoformat() + "Z"
-            with open(metadata_path, "w", encoding="utf-8") as file:
-                json.dump(metadata, file, indent=4)
-            output_path = self._construct_output_path(input_key)
+            output_path = self._construct_output_path(input_key, metadata)
             with open(output_path, "rb") as file:
                 output_bytes = file.read()
-            output = self._serializer.deserialize(output_bytes)
-            return output
+            return output_bytes
         except Exception as error:
             raise ReadException(str(error)) from error
         
-    def write_output(self, output: Any, metadata: dict, input_key: InputKey) -> None:
-        """
-        A close to "atomic" write to the cache. We dump the result to a temporary folder
-        first, instead of directly to the cache path. Avoids the issue of partially
-        written files (e.g. if the process is killed in the middle of a dump), and
-        then appearing as if we have a valid result in the cache.
-
-        Still have a small window where there could be a partially written files: after
-        the files are dumped to the temporary folder, but before they are moved to the
-        final cache path.
-        """
+    def write_output(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
         try:
-            path = self._construct_input_path(input_key)
-            relative_metadata_path = self._construct_input_metadata_path(input_key).relative_to(path)
-            relative_output_path = self._construct_output_path(input_key).relative_to(path)
-            with tempfile.TemporaryDirectory() as tmp_path:
-                tmp_path = Path(tmp_path)
-                # write metadata to temporary folder
-                metadata_path = tmp_path / relative_metadata_path
-                with open(metadata_path, "w", encoding="utf-8") as file:
-                    json.dump(metadata, file, indent=4)
-                # write output to temporary folder
-                output_path = tmp_path / relative_output_path
-                output_bytes = self._serializer.serialize(output)
-                with open(output_path, "wb") as file:
-                    file.write(output_bytes)
-                # move from temporary folder to real path
-                path.parent.mkdir(parents=True, exist_ok=True)
-                if path.exists() and path.is_dir():
-                    shutil.rmtree(path)
-                shutil.copytree(tmp_path, path)
-                # tempfile handles cleanup of temporary folder
+            output_path = self._construct_output_path(input_key, metadata)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "wb") as file:
+                file.write(output_bytes)
         except Exception as error:
             raise WriteException(str(error)) from error
 
     def output_path(self, input_key: InputKey) -> Optional[str]:
-        output_path = self._construct_output_path(input_key)
+        metadata = self.read_metadata(input_key)
+        output_path = self._construct_output_path(input_key, metadata)
         if output_path.exists():
             return str(output_path)
+        return None
+    
+    # last accessed
+
+    def update_last_accessed(self, input_key: InputKey) -> None:
+        metadata = self.read_metadata(input_key)
+        metadata['last_accessed'] = datetime.datetime.utcnow().isoformat() + "Z"
+        self.write_metadata(metadata, input_key)
+
+    def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:
+        metadata = self.read_metadata(input_key)
+        if 'last_accessed' in metadata:
+            return datetime.datetime.fromisoformat(metadata['last_accessed'])
         return None

@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 
 class Serializer(ABC):
-    extension: str
+    metadata: dict
 
     @abstractmethod
     def serialize(self, value: Any) -> bytes:
@@ -17,7 +17,7 @@ class Serializer(ABC):
 
 
 class JsonSerializer(Serializer):
-    extension = "json"
+    metadata = { "extension": "json" }
 
     def serialize(self, value: Any) -> bytes:
         return json.dumps(value, indent=4).encode("utf-8")
@@ -27,7 +27,7 @@ class JsonSerializer(Serializer):
 
 
 class PickleSerializer(Serializer):
-    extension = "pickle"
+    metadata = { "extension": "pickle" }
 
     def serialize(self, value: Any) -> bytes:
         return pickle.dumps(value)

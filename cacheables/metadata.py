@@ -3,19 +3,17 @@ import subprocess
 
 from loguru import logger
 
-from .keys import InputKey
-
 
 def create_metadata(
-    input_key: InputKey
+    input_id: str,
+    output_id: str,
+    serializer_metadata: dict
 ) -> dict:
-    current_time = datetime.datetime.utcnow().isoformat() + "Z"
-    metadata = {
-        "function_id": input_key.function_id,
-        "input_id": input_key.input_id,
-        "created_at": current_time,
-        "last_accessed_at": current_time,
-    }
+    metadata = {}
+    metadata["input_id"] = input_id
+    metadata["output_id"] = output_id
+    metadata["created_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+    metadata["serializer"] = serializer_metadata
     try:
         metadata["git_commit_hash"] = (
             subprocess.check_output(["git", "rev-parse", "HEAD"])
