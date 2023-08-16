@@ -60,15 +60,9 @@ class DiskCache(Cache):
     def get_output_path(self, input_key: InputKey) -> str:
         if not self.exists(input_key):
             raise InputKeyNotFoundError(f"{input_key} not found in cache")
-        metadata = self.read_metadata(input_key)
+        metadata = self.load_metadata(input_key)
         output_path = self._construct_output_path(input_key, metadata)
         return str(output_path)
-    
-    def get_metadata(self, input_key: InputKey) -> dict:
-        if not self.exists(input_key):
-            raise InputKeyNotFoundError(f"{input_key} not found in cache")
-        metadata = self.read_metadata(input_key)
-        return metadata
 
     # input methods
 
@@ -95,13 +89,13 @@ class DiskCache(Cache):
 
     # metadata methods
 
-    def write_metadata(self, metadata: dict, input_key: InputKey) -> None:
+    def dump_metadata(self, metadata: dict, input_key: InputKey) -> None:
         metadata_path = self._construct_metadata_path(input_key)
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=4)
 
-    def read_metadata(self, input_key: InputKey) -> dict:
+    def load_metadata(self, input_key: InputKey) -> dict:
         metadata_path = self._construct_metadata_path(input_key)
         with open(metadata_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -129,12 +123,12 @@ class DiskCache(Cache):
     # last accessed
 
     def update_last_accessed(self, input_key: InputKey) -> None:
-        metadata = self.read_metadata(input_key)
+        metadata = self.load_metadata(input_key)
         metadata['last_accessed'] = datetime.datetime.utcnow().isoformat() + "Z"
-        self.write_metadata(metadata, input_key)
+        self.dump_metadata(metadata, input_key)
 
     def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:
-        metadata = self.read_metadata(input_key)
+        metadata = self.load_metadata(input_key)
         if 'last_accessed' in metadata:
             return datetime.datetime.fromisoformat(metadata['last_accessed'])
         return None

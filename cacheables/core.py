@@ -134,7 +134,6 @@ class CacheableFunction:
         if read:
             if self._cache.exists(input_key):
                 try:
-                    self._logger.info("loading output from cache")
                     return self._load(input_key)
                 except LoadException as error:
                     warning_msg = f"failed to load output from cache: {error}"
@@ -148,7 +147,6 @@ class CacheableFunction:
 
         if write:
             try:
-                self._logger.info("dumping output to cache")
                 self._dump(output, input_key)
             except DumpException as error:
                 message_msg = f"failed to dump output to cache: {error}"
@@ -158,6 +156,7 @@ class CacheableFunction:
         return output
 
     def _load(self, input_key: InputKey) -> Any:
+        self._logger.info("loading output from cache")
         try:
             if not self._controller.is_read_enabled():
                 raise CacheNotEnabledError("Cache reads are not enabled.")
@@ -169,11 +168,18 @@ class CacheableFunction:
         except Exception as error:
             raise LoadException(error) from error
         
-    def load(self, input_id: str) -> Any:
+    def load_output(self, input_id: str) -> Any:
         input_key = self._get_input_key_from_input_id(input_id)
         return self._load(input_key)
+    
+    def load_metadata(self, input_id: str) -> dict:
+        input_key = self._get_input_key_from_input_id(input_id)
+        if not self._cache.exists(input_key):
+            raise InputKeyNotFoundError(f"{input_key} not found in cache")
+        return self._cache.load_metadata(input_key)
 
     def _dump(self, output: Any, input_key: InputKey) -> None:
+        self._logger.info("dumping output to cache")
         try:
             if not self._controller.is_write_enabled():
                 raise CacheNotEnabledError("Cache writes are not enabled.")
@@ -188,17 +194,13 @@ class CacheableFunction:
         except Exception as error:
             raise DumpException(error) from error
         
-    def dump(self, output: Any, input_id: str) -> None:
+    def dump_output(self, output: Any, input_id: str) -> None:
         input_key = self._get_input_key_from_input_id(input_id)
         return self._dump(output, input_key)
     
     def get_output_path(self, input_id: str) -> str:
         input_key = self._get_input_key_from_input_id(input_id)
         return self._cache.get_output_path(input_key)
-    
-    def get_metadata(self, input_id: str) -> dict:
-        input_key = self._get_input_key_from_input_id(input_id)
-        return self._cache.get_metadata(input_key)
     
     def enable_cache(self, read: bool = True, write: bool = True) -> contextlib.AbstractContextManager[None]:
         return self._controller.enable(read=read, write=write)

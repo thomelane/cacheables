@@ -43,7 +43,7 @@ class Cache(ABC):
         pass
 
     @abstractmethod
-    def read_metadata(self, input_key: InputKey) -> dict:
+    def load_metadata(self, input_key: InputKey) -> dict:
         pass
     
     @abstractmethod
@@ -51,14 +51,14 @@ class Cache(ABC):
         pass
 
     @abstractmethod
-    def write_metadata(self, metadata: dict, input_key: InputKey) -> None:
+    def dump_metadata(self, metadata: dict, input_key: InputKey) -> None:
         pass
 
     @abstractmethod
     def get_output_path(self, input_key: InputKey) -> str:
         pass
 
-    def get_metadata(self, input_key: InputKey) -> dict:
+    def load_metadata(self, input_key: InputKey) -> dict:
         pass
 
     @abstractmethod
@@ -71,13 +71,13 @@ class Cache(ABC):
 
     def read(self, input_key: InputKey) -> bytes:
         self.update_last_accessed(input_key)
-        metadata = self.read_metadata(input_key)
+        metadata = self.load_metadata(input_key)
         output_bytes = self.read_output(metadata, input_key)
         return output_bytes
 
     def write(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
         self.write_output(output_bytes, metadata, input_key)
-        self.write_metadata(metadata, input_key)
+        self.dump_metadata(metadata, input_key)
         self.update_last_accessed(input_key)
 
 

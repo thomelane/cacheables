@@ -89,7 +89,7 @@ def test_cacheable_cache_path(tmpdir):
         "functions",
         "foo",
         "inputs",
-        "10dfa08ce5ecd2cb",
+        "ad089d3d19511caa",
         "3ca08f64e96a37c2.pickle"
     )
 
@@ -289,4 +289,4 @@ def test_cacheable_read(tmpdir):
     foo.enable_cache()
     assert foo(1, 2) == 3
     input_id = foo.get_input_id(1, 2)
-    assert foo.load(input_id) == 3
+    assert foo.load_output(input_id) == 3
