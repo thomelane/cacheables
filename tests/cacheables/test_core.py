@@ -66,12 +66,12 @@ def test_cacheable_cache_enabled(tmpdir):
     def foo(a: int, b: int) -> int:
         return inner_fn(a, b)
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3
         assert foo(1, 2) == 3
         inner_fn.assert_called_once()
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3
         inner_fn.assert_called_once()
 
@@ -91,7 +91,7 @@ def test_cacheable_cache_path(tmpdir):
     )
 
     input_key = foo._get_input_key(1, 2)
-    file_path = foo.cache._construct_output_path(input_key)
+    file_path = foo._cache._construct_output_path(input_key)
     assert file_path == expected_path
 
 
@@ -100,7 +100,7 @@ def test_cacheable_change_metadata(tmpdir):
     def foo(_) -> int:
         return 1
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1) == 1
 
     # changed implementation but didn't update version/signature
@@ -108,7 +108,7 @@ def test_cacheable_change_metadata(tmpdir):
     def foo(_) -> int:  # pylint: disable=function-redefined
         return 2
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1) == 1  # should still return the old cached result
 
     # updated version/signature this time
@@ -116,7 +116,7 @@ def test_cacheable_change_metadata(tmpdir):
     def foo(_, blank=None) -> int:  # pylint: disable=function-redefined
         return 2
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1) == 2
 
 
@@ -132,7 +132,7 @@ def test_cacheable_with_deserialize_error(tmpdir):
     def foo(a: int, b: int) -> int:
         return a + b
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3
         assert foo(1, 2) == 3
     assert serializer.serialize.call_count == 2
@@ -150,7 +150,7 @@ def test_cacheable_with_serialize_error(tmpdir):
     def foo(a: int, b: int) -> int:
         return a + b
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3
         assert foo(1, 2) == 3
     serializer.deserialize.assert_not_called()
@@ -161,10 +161,10 @@ def test_cacheable_cache_read_only(
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3  # call inner_fn and serialize
 
-    with foo.cache.enable(read=True, write=False):
+    with foo.enable_cache(read=True, write=False):
         assert foo(3, 4) == 7  # call inner_fn
         assert foo(1, 2) == 3  # call deserialize
 
@@ -178,10 +178,10 @@ def test_cacheable_cache_write_only(
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3  # call inner_fn and serialize
 
-    with foo.cache.enable(read=False, write=True):
+    with foo.enable_cache(read=False, write=True):
         assert foo(1, 2) == 3  # call inner_fn and serialize
 
     assert inner_fn.call_count == 2
@@ -194,13 +194,13 @@ def test_cacheable_cache_disabled(
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3  # call inner_fn and serialize
 
-    with foo.cache.disable():
+    with foo.disable_cache():
         assert foo(1, 2) == 3  # call inner_fn
 
-    with foo.cache.enable(read=False, write=False):
+    with foo.enable_cache(read=False, write=False):
         assert foo(1, 2) == 3  # call inner_fn
 
     assert inner_fn.call_count == 3
@@ -213,19 +213,19 @@ def test_cacheable_cache_override(
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3  # call inner_fn and serialize
 
-    with foo.cache.disable():
-        with foo.cache.enable():
+    with foo.disable_cache():
+        with foo.enable_cache():
             assert foo(1, 2) == 3  # call deserialize
 
-    with foo.cache.enable():
-        with foo.cache.disable():
+    with foo.enable_cache():
+        with foo.disable_cache():
             assert foo(1, 2) == 3  # call inner_fn
 
-    with foo.cache.enable(read=True, write=False):
-        with foo.cache.enable(read=False, write=True):
+    with foo.enable_cache(read=True, write=False):
+        with foo.enable_cache(read=False, write=True):
             assert foo(1, 2) == 3  # call inner_fn and serialize
 
     assert inner_fn.call_count == 3
@@ -239,7 +239,7 @@ def test_cacheable_disable_cache_globally(
     foo, inner_fn, deserialize, serialize = observable_foo
 
     with disable_all_caches():
-        with foo.cache.enable():
+        with foo.enable_cache():
             assert foo(1, 2) == 3  # call inner_fn
             assert foo(1, 2) == 3  # call inner_fn
 
@@ -268,7 +268,7 @@ def test_cacheable_disable_cache_via_env_var(
     foo, inner_fn, deserialize, serialize = observable_foo
 
     with mock.patch.dict("os.environ", {"CACHEABLES_DISABLED": "true"}):
-        with foo.cache.enable():
+        with foo.enable_cache():
             assert foo(1, 2) == 3  # call inner_fn, but not serialize
             assert foo(1, 2) == 3  # call inner_fn, but not deserialize
 
@@ -282,7 +282,7 @@ def test_cacheable_read(tmpdir):
     def foo(a: int, b: int) -> int:
         return a + b
 
-    with foo.cache.enable():
+    with foo.enable_cache():
         assert foo(1, 2) == 3
 
     input_id = foo.get_input_id(1, 2)

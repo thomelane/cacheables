@@ -18,6 +18,7 @@ from .exceptions import (
 from .caches import Cache, DiskCache
 from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
+from .controller import CacheController
 
 
 logger.disable(__name__)
@@ -50,7 +51,8 @@ class CacheableFunction:
     ):
         self._fn = fn
         self._function_id = function_id or self.get_function_id()
-        self.cache = cache or DiskCache()
+        self._cache = cache or DiskCache()
+        self._controller = CacheController()
         self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
@@ -77,7 +79,7 @@ class CacheableFunction:
         # sort arguments to ensure consistent ordering
         arguments = tuple(sorted(arguments.items()))
         str_to_hash = pickle.dumps(arguments)
-        input_id = hashlib.md5(str_to_hash).hexdigest()
+        input_id = hashlib.md5(str_to_hash).hexdigest()[:16]
         return input_id
 
     def _get_input_key(self, *args, **kwargs) -> InputKey:
@@ -87,8 +89,8 @@ class CacheableFunction:
         )
 
     def __call__(self, *args, **kwargs):
-        read = self.cache.is_read_enabled()
-        write = self.cache.is_write_enabled()
+        read = self._controller.is_read_enabled()
+        write = self._controller.is_write_enabled()
 
         if not (read or write):
             self._logger.debug("executing function without cache")
@@ -105,10 +107,10 @@ class CacheableFunction:
             return output
 
         if read:
-            if self.cache.exists(input_key):
+            if self._cache.exists(input_key):
                 try:
                     self._logger.info("reading output from cache")
-                    return self.cache.read_output(input_key)
+                    return self._cache.read_output(input_key)
                 except ReadException as error:
                     warning_msg = f"failed to read output from cache: {error}"
                     self._logger.warning(warning_msg)
@@ -123,7 +125,7 @@ class CacheableFunction:
             try:
                 self._logger.info("writing output to cache")
                 metadata = create_metadata(input_key)
-                self.cache.write_output(output, metadata, input_key)
+                self._cache.write_output(output, metadata, input_key)
             except WriteException as error:
                 message_msg = f"failed to write output to cache: {error}"
                 self._logger.warning(message_msg)
@@ -138,9 +140,9 @@ class CacheableFunction:
             function_id=self._function_id,
             input_id=input_id,
         )
-        if not self.cache.exists(input_key):
+        if not self._cache.exists(input_key):
             raise MissingOutputException("output not found in cache")
-        return self.cache.read_output(input_key)
+        return self._cache.read_output(input_key)
 
     # cache-property
     def write(self, output: Any, input_id: str):
@@ -150,4 +152,10 @@ class CacheableFunction:
             input_id=input_id,
         )
         metadata = create_metadata(input_key)
-        return self.cache.write_output(output, metadata, input_key)
+        return self._cache.write_output(output, metadata, input_key)
+    
+    def enable_cache(self, read: bool = True, write: bool = True) -> contextlib.AbstractContextManager[None]:
+        return self._controller.enable(read=read, write=write)
+
+    def disable_cache(self) -> contextlib.AbstractContextManager[None]:
+        return self._controller.disable()
