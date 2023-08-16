@@ -21,26 +21,6 @@ from ..exceptions import (
 )
 
 
-def copy_(src_folder: Path, dst_folder: Path):
-    if not src_folder.exists() or not src_folder.is_dir():
-        raise ValueError(f"{src_folder} does not exist or is not a directory")
-
-    if not dst_folder.exists():
-        dst_folder.mkdir(parents=True, exist_ok=True)
-
-    for item in src_folder.iterdir():
-        src_item = src_folder / item.name
-        dst_item = dst_folder / item.name
-
-        if item.is_file():
-            if not dst_item.exists():
-                shutil.copy2(src_item, dst_item)
-        elif item.is_dir():
-            move_files(src_item, dst_item)  # recursion
-    
-    shutil.rmtree(src_folder, ignore_errors=True)
-
-
 class DiskCache(Cache):
 
     def __init__(

@@ -10,7 +10,7 @@
 
 
 from abc import ABC, abstractmethod
-from typing import List, Any, Optional
+from typing import List, Optional
 import datetime
 
 from ..keys import FunctionKey, InputKey
@@ -38,6 +38,10 @@ class Cache(ABC):
         from_function_key: FunctionKey,
         to_function_key: FunctionKey
     ) -> None:
+        """
+        Assumes the to_function is using the same cache as the from_function.
+        e.g. both using DiskCache with the same base_path, etc.
+        """
         pass
     
     # output methods
