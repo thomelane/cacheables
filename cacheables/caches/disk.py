@@ -28,7 +28,11 @@ class DiskCache(Cache):
         base_path: Optional[Union[str, Path]] = None
     ):
         super().__init__()
-        self._base_path = base_path or os.getcwd() + "/.cacheables"
+        self._base_path = (
+            base_path or
+            os.getenv("CACHEABLES_DISK_CACHE_BASE_PATH") or
+            os.getcwd() + "/.cacheables"
+        )
 
     # path construction methods
 

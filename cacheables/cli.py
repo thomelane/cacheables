@@ -9,7 +9,7 @@ def cacheables():
     pass
 
 
-def load_function_from_path(path) -> callable:
+def load_function_from_path(path) -> CacheableFunction:
     """Load a Python function from a given path."""
     if ":" not in path:
         raise click.BadParameter("path should be in the format 'module.submodule:function_name'.")
@@ -27,37 +27,27 @@ def load_function_from_path(path) -> callable:
 
 
 @cacheables.command()
-@click.argument('function_path')
-def check(function_path):
-    """
-    Check a cacheable function is valid.
-    """
-    func = load_function_from_path(function_path)
-    click.echo(f"Loaded function: {func.__name__} from {function_path}")
-
-
-@cacheables.command()
 @click.argument('function_id')
-@click.argument('function_name')
-def adopt(function_id, function_name):
+@click.argument('function_path')
+def adopt(function_id, function_path):
     """
-    Adopt another cacheable function's cache.
-    Useful after a function rename to preserve the original cache.
+    Adopt another CacheableFunction's cache.
+    Useful after a function rename to reuse the existing cache.
     Assumes both caches are of the same type (i.e. both DiskCache).
     """
-    _ = load_function_from_path(function_name)
-    print(f"Renaming {function_id} to {function_name}")
+    fn = load_function_from_path(function_path)
+    fn.adopt_cache(function_id)
 
 
 @cacheables.command()
-@click.argument('function_name')
-def delete(function_name):
+@click.argument('function_path')
+def clear(function_path):
     """
-    Delete (all or part of) a cache.
+    Clear the cache of a CacheableFunction.
     Useful for invalidating cache and/or reducing cache size.
     """
-    _ = load_function_from_path(function_name)
-    print(f"Deleting cache for {function_name}")
+    fn = load_function_from_path(function_path)
+    fn.clear_cache()
 
 
 if __name__ == "__main__":
