@@ -54,7 +54,8 @@ class DiskCache(Cache):
     
     def _construct_output_path(self, input_key: InputKey, metadata: dict) -> Path:
         input_path = self._construct_input_path(input_key)
-        filename = f"{metadata['output_id']}.{metadata['serializer']['extension']}"
+        extension = metadata['serializer'].get('extension', 'bin')
+        filename = f"{metadata['output_id']}.{extension}"
         return input_path / filename
     
     def get_output_path(self, input_key: InputKey) -> str:
