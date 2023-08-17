@@ -1,9 +1,4 @@
-# <base_path>/functions/<function_key>/versions/<version_key>/metadata.json
-# <base_path>/functions/<function_key>/versions/<version_key>/inputs/<input_key>/metadata.json
-# <base_path>/functions/<function_key>/versions/<version_key>/inputs/<input_key>/outputs/<arbritrary-files-can-go-here>
-
-
-from typing import List, Optional, Union, Any
+from typing import List, Optional, Union
 from pathlib import Path
 import os
 import json
