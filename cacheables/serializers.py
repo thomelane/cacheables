@@ -15,8 +15,9 @@ class Serializer(ABC):
     def deserialize(self, value: bytes) -> Any:
         pass
 
+
 class JsonSerializer(Serializer):
-    metadata = { "extension": "json" }
+    metadata = {"extension": "json"}
 
     def serialize(self, value: Any) -> bytes:
         return json.dumps(value, indent=4).encode("utf-8")
@@ -26,7 +27,7 @@ class JsonSerializer(Serializer):
 
 
 class PickleSerializer(Serializer):
-    metadata = { "extension": "pickle" }
+    metadata = {"extension": "pickle"}
 
     def serialize(self, value: Any) -> bytes:
         return pickle.dumps(value)

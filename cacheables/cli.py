@@ -12,7 +12,9 @@ def cacheables():
 def load_function_from_path(path) -> CacheableFunction:
     """Load a Python function from a given path."""
     if ":" not in path:
-        raise click.BadParameter("path should be in the format 'module.submodule:function_name'.")
+        raise click.BadParameter(
+            "path should be in the format 'module.submodule:function_name'."
+        )
     module_path, func_name = path.rsplit(":", 1)
     try:
         module = importlib.import_module(module_path)
@@ -20,15 +22,19 @@ def load_function_from_path(path) -> CacheableFunction:
         raise click.BadParameter(f"Module '{module_path}' not found.") from exc
     func = getattr(module, func_name, None)
     if not func or not callable(func):
-        raise click.BadParameter(f"Function '{func_name}' not found in module '{module_path}'.")
+        raise click.BadParameter(
+            f"Function '{func_name}' not found in module '{module_path}'."
+        )
     if not isinstance(func, CacheableFunction):
-        raise click.BadParameter(f"Function '{func_name}' is not a CacheableFunction. Must be decorated with @cacheable.")
+        raise click.BadParameter(
+            f"Function '{func_name}' is not a CacheableFunction. Must be decorated with @cacheable."
+        )
     return func
 
 
 @cacheables.command()
-@click.argument('function_id')
-@click.argument('function_path')
+@click.argument("function_id")
+@click.argument("function_path")
 def adopt(function_id, function_path):
     """
     Adopt another CacheableFunction's cache.
@@ -40,7 +46,7 @@ def adopt(function_id, function_path):
 
 
 @cacheables.command()
-@click.argument('function_path')
+@click.argument("function_path")
 def clear(function_path):
     """
     Clear the cache of a CacheableFunction.

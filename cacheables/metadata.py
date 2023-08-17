@@ -29,11 +29,7 @@ def _get_git_metadata() -> dict:
     return metadata
 
 
-def create_metadata(
-    input_id: str,
-    output_id: str,
-    serializer_metadata: dict
-) -> dict:
+def create_metadata(input_id: str, output_id: str, serializer_metadata: dict) -> dict:
     metadata = {}
     metadata["input_id"] = input_id
     metadata["output_id"] = output_id

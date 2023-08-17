@@ -5,28 +5,18 @@ import json
 import shutil
 import datetime
 
-from cacheables.keys import FunctionKey
-
 from .cache import Cache
 from ..keys import FunctionKey, InputKey
-from ..exceptions import (
-    ReadException,
-    WriteException,
-    InputKeyNotFoundError
-)
+from ..exceptions import ReadException, WriteException, InputKeyNotFoundError
 
 
 class DiskCache(Cache):
-
-    def __init__(
-        self,
-        base_path: Optional[Union[str, Path]] = None
-    ):
+    def __init__(self, base_path: Optional[Union[str, Path]] = None):
         super().__init__()
         self._base_path = (
-            base_path or
-            os.getenv("CACHEABLES_DISK_CACHE_BASE_PATH") or
-            os.getcwd() + "/.cacheables"
+            base_path
+            or os.getenv("CACHEABLES_DISK_CACHE_BASE_PATH")
+            or os.getcwd() + "/.cacheables"
         )
         self._base_path = Path(self._base_path).resolve()
 
@@ -34,30 +24,30 @@ class DiskCache(Cache):
 
     def _construct_functions_path(self) -> Path:
         base_path = Path(self._base_path)
-        return base_path / 'functions'
+        return base_path / "functions"
 
     def _construct_function_path(self, function_key: FunctionKey) -> Path:
         functions_path = self._construct_functions_path()
         return functions_path / function_key.function_id
-    
+
     def _construct_inputs_path(self, function_key: FunctionKey) -> Path:
         function_path = self._construct_function_path(function_key)
-        return function_path / 'inputs'
-    
+        return function_path / "inputs"
+
     def _construct_input_path(self, input_key: InputKey) -> Path:
         inputs_path = self._construct_inputs_path(input_key.function_key)
         return inputs_path / input_key.input_id
-    
+
     def _construct_metadata_path(self, input_key: InputKey) -> Path:
         input_path = self._construct_input_path(input_key)
-        return input_path / 'metadata.json'
-    
+        return input_path / "metadata.json"
+
     def _construct_output_path(self, input_key: InputKey, metadata: dict) -> Path:
         input_path = self._construct_input_path(input_key)
-        extension = metadata['serializer'].get('extension', 'bin')
+        extension = metadata["serializer"].get("extension", "bin")
         filename = f"{metadata['output_id']}.{extension}"
         return input_path / filename
-    
+
     def get_output_path(self, input_key: InputKey) -> str:
         if not self.exists(input_key):
             raise InputKeyNotFoundError(f"{input_key} not found in cache")
@@ -74,10 +64,8 @@ class DiskCache(Cache):
     def list(self, function_key: FunctionKey) -> List[InputKey]:
         inputs_path = self._construct_inputs_path(function_key)
         return [
-            InputKey(
-                function_id=function_key.function_id,
-                input_id=folder.name
-            ) for folder in inputs_path.glob("*/")
+            InputKey(function_id=function_key.function_id, input_id=folder.name)
+            for folder in inputs_path.glob("*/")
         ]
 
     def evict(self, input_key: InputKey) -> None:
@@ -89,9 +77,7 @@ class DiskCache(Cache):
         shutil.rmtree(function_path, ignore_errors=True)
 
     def adopt(
-        self,
-        from_function_key: FunctionKey,
-        to_function_key: FunctionKey
+        self, from_function_key: FunctionKey, to_function_key: FunctionKey
     ) -> None:
         from_path = self._construct_function_path(from_function_key)
         to_path = self._construct_function_path(to_function_key)
@@ -110,9 +96,9 @@ class DiskCache(Cache):
         metadata_path = self._construct_metadata_path(input_key)
         with open(metadata_path, "r", encoding="utf-8") as f:
             return json.load(f)
-    
+
     # output methods
-    
+
     def read_output(self, metadata: dict, input_key: InputKey) -> bytes:
         try:
             output_path = self._construct_output_path(input_key, metadata)
@@ -121,8 +107,10 @@ class DiskCache(Cache):
             return output_bytes
         except Exception as error:
             raise ReadException(str(error)) from error
-        
-    def write_output(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
+
+    def write_output(
+        self, output_bytes: bytes, metadata: dict, input_key: InputKey
+    ) -> None:
         try:
             output_path = self._construct_output_path(input_key, metadata)
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -130,16 +118,16 @@ class DiskCache(Cache):
                 file.write(output_bytes)
         except Exception as error:
             raise WriteException(str(error)) from error
-    
+
     # last accessed
 
     def update_last_accessed(self, input_key: InputKey) -> None:
         metadata = self.load_metadata(input_key)
-        metadata['last_accessed'] = datetime.datetime.utcnow().isoformat() + "Z"
+        metadata["last_accessed"] = datetime.datetime.utcnow().isoformat() + "Z"
         self.dump_metadata(metadata, input_key)
 
     def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:
         metadata = self.load_metadata(input_key)
-        if 'last_accessed' in metadata:
-            return datetime.datetime.fromisoformat(metadata['last_accessed'])
+        if "last_accessed" in metadata:
+            return datetime.datetime.fromisoformat(metadata["last_accessed"])
         return None

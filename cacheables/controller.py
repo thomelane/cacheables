@@ -10,7 +10,9 @@ class CacheController:
         self._write: Optional[bool] = None
         self._global = GlobalCacheController()
 
-    def enable(self, read: bool = True, write: bool = True) -> contextlib.AbstractContextManager[None]:
+    def enable(
+        self, read: bool = True, write: bool = True
+    ) -> contextlib.AbstractContextManager[None]:
         previous_read, previous_write = self._read, self._write
         self._read, self._write = read, write
 
@@ -22,7 +24,7 @@ class CacheController:
                 self._read, self._write = previous_read, previous_write
 
         return context_manager()
-    
+
     def disable(self) -> contextlib.AbstractContextManager[None]:
         return self.enable(read=False, write=False)
 
@@ -45,15 +47,17 @@ class CacheController:
 
 class GlobalCacheController:
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(GlobalCacheController, cls).__new__(cls)
             cls._instance._read = None
             cls._instance._write = None
         return cls._instance
-    
-    def enable(self, read: bool = True, write: bool = True) -> contextlib.AbstractContextManager[None]:
+
+    def enable(
+        self, read: bool = True, write: bool = True
+    ) -> contextlib.AbstractContextManager[None]:
         previous_read, previous_write = self._read, self._write
         self._read, self._write = read, write
 
@@ -65,7 +69,7 @@ class GlobalCacheController:
                 self._read, self._write = previous_read, previous_write
 
         return context_manager()
-    
+
     def disable(self) -> contextlib.AbstractContextManager[None]:
         return self.enable(read=False, write=False)
 
@@ -77,7 +81,7 @@ class GlobalCacheController:
             return True
         else:
             return None
-    
+
     def is_write_enabled(self) -> Optional[bool]:
         env_var_enabled = self._env_var_enabled()
         if (self._write is False) or (env_var_enabled is False):
@@ -86,13 +90,15 @@ class GlobalCacheController:
             return True
         else:
             return None
-    
+
     @staticmethod
     def _env_var_enabled() -> Optional[bool]:
         enabled = os.environ.get("CACHEABLES_ENABLED", "").lower() == "true"
         disabled = os.environ.get("CACHEABLES_DISABLED", "").lower() == "true"
         if enabled and disabled:
-            warnings.warn("CACHEABLES_ENABLED and CACHEABLES_DISABLED are both set to true.")
+            warnings.warn(
+                "CACHEABLES_ENABLED and CACHEABLES_DISABLED are both set to true."
+            )
             return False
         elif disabled:
             return False

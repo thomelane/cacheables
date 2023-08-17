@@ -73,7 +73,7 @@ argument hashes into a single hash.
 
 ### `output_id`
 
-An `output_id` uniquely identifies an output to a function. Simiar to the
+An `output_id` uniquely identifies an output to a function. Similar to the
 `input_id`, it is a hash of the function's output.
 
 ## Usage
@@ -168,16 +168,16 @@ specifying the `read` and `write` arguments.
 ```python
 foo.enable_cache(read=False, write=True)
 foo("hello")  # foo called, and result added to cache
-foo("hello")  # foo called, and result readded to cache
+foo("hello")  # foo called, and result re-added to cache
 ```
 
 You have three levels of cache settings:
 
-* Function: controlled by `foo.enable_cache`/`foo.disable_cache`.
+* Function: controlled by `foo.enable_cache`/`foo.disable_cache`
 * Global: controlled by `enable_all_caches`/`disable_all_caches`
 * Environment: controlled by `CACHEABLES_ENABLED`/`CACHEABLES_DISABLED`
 
-When nothing is explicitly enabled/disabled (i.e. default), the cache will be disabled so that the cacheable function runs without any caching. When *any* level is set to disabled, the cache will be disabled, regardless of the other level settings (even if they are explicilty set to enabled).
+When nothing is explicitly enabled/disabled (i.e. default), the cache will be disabled so that the cacheable function runs without any caching. When *any* level is explicitly set to disabled, the cache will be disabled, regardless of the other level settings (even if they are explicitly set to enabled).
 
 ### Output load
 

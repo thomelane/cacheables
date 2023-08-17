@@ -6,7 +6,6 @@ from ..keys import FunctionKey, InputKey
 
 
 class Cache(ABC):
-
     # input methods
 
     @abstractmethod
@@ -23,16 +22,14 @@ class Cache(ABC):
 
     @abstractmethod
     def adopt(
-        self,
-        from_function_key: FunctionKey,
-        to_function_key: FunctionKey
+        self, from_function_key: FunctionKey, to_function_key: FunctionKey
     ) -> None:
         """
         Assumes the to_function is using the same cache as the from_function.
         e.g. both using DiskCache with the same base_path, etc.
         """
         pass
-    
+
     # output methods
 
     @abstractmethod
@@ -46,9 +43,11 @@ class Cache(ABC):
     @abstractmethod
     def load_metadata(self, input_key: InputKey) -> dict:
         pass
-    
+
     @abstractmethod
-    def write_output(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
+    def write_output(
+        self, output_bytes: bytes, metadata: dict, input_key: InputKey
+    ) -> None:
         pass
 
     @abstractmethod

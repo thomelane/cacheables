@@ -10,7 +10,7 @@ def cacheable(
     function_id: Optional[str] = None,
     cache: Optional[Cache] = None,
     serializer: Optional[Serializer] = None,
-    exclude_args_fn: Optional[Callable] = None
+    exclude_args_fn: Optional[Callable] = None,
 ) -> Callable[[Callable], CacheableFunction]:
     def decorator(fn: Callable) -> CacheableFunction:
         return CacheableFunction(
@@ -18,7 +18,7 @@ def cacheable(
             function_id=function_id,
             cache=cache,
             serializer=serializer,
-            exclude_args_fn=exclude_args_fn
+            exclude_args_fn=exclude_args_fn,
         )
 
     # when cacheable is used as @cacheable without parentheses,
