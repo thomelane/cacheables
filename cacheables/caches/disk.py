@@ -33,6 +33,7 @@ class DiskCache(Cache):
             os.getenv("CACHEABLES_DISK_CACHE_BASE_PATH") or
             os.getcwd() + "/.cacheables"
         )
+        self._base_path = Path(self._base_path).resolve()
 
     # path construction methods
 
