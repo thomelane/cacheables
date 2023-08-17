@@ -88,6 +88,7 @@ class Cache(ABC):
         return output_bytes
 
     def write(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
+        self.evict(input_key)
         self.write_output(output_bytes, metadata, input_key)
         self.dump_metadata(metadata, input_key)
         self.update_last_accessed(input_key)
