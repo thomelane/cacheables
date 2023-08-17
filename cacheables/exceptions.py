@@ -1,4 +1,8 @@
-class DumpException(Exception):
+class WriteException(Exception):
+    pass
+
+
+class ReadException(Exception):
     pass
 
 
@@ -6,13 +10,13 @@ class LoadException(Exception):
     pass
 
 
-class MissingResultException(Exception):
+class DumpException(Exception):
     pass
 
 
-class VersionIdException(Exception):
+class InputKeyNotFoundError(Exception):
     pass
 
 
-class InputIdException(Exception):
+class CacheNotEnabledError(Exception):
     pass

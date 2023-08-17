@@ -2,7 +2,7 @@
 
 Cacheables is a module that make it easy to cache function results. You'll be
 able to experiment faster (by avoiding repeated work) and keep track of your
-experiments with out-of-the-box versioning.
+experiments with out-of-the-box input/output versioning.
 
 @cacheable is the decorator that makes a function cacheable.
 
@@ -18,54 +18,63 @@ def foo(text: str) -> int:
     sleep(10)  # simulate a long running function
     return len(str)
 
+# will execute as normal by default
+foo("hello")  # returns after 10 seconds
+foo("hello")  # returns after 10 seconds
 
-foo("hello")  #  returns 5 after 10 seconds
-foo("hello")  #  returns 5 after 10 seconds
-with foo.enable_cache():
-    foo("hello")  #  returns 5 after 10 seconds
-    foo("hello")  #  returns 5 immediately
-    foo("world")  #  returns 5 after 10 seconds
-    foo("world")  #  returns 5 immediately
+foo.enable_cache()
+foo("world")  # returns after 10 seconds (writes to cache)
+foo("world")  # returns immediately (reads from cache)
 
 # same or different process
 
-with foo.enable_cache():
-    foo("hello")  #  returns 5 immediately
+foo.enable_cache()
+foo("hello")  # returns immediately (reads from cache)
 ```
 
 When the cache is enabled, the following happens:
 
-* the cache path will be calculated
-* if the cache path exists
-    * the result will be loaded from the cache path (using a `load_fn`)
-    * and the result will be returned
-* if the cache path does not exist
-    * the original function will execute to get a result
-    * the result will be stored at the cache path (using a `dump_fn`)
-    * and the result will be returned
+* the `input_key` will be calculated from the provided args
+* if the `input_key` exists in the cache
+    * the output will be loaded from the cache
+        * using `cache.read` and then `serializer.deserialize`
+    * and the output will be returned
+* if the `input_key` doesn't exist in the cache
+    * the original function will execute to get an output
+    * the output will be dumped in the cache
+        * using `serializer.serialize` and then `cache.write`
+    * and the output will be returned
 
-## Cache Path
+## PickleSerializer & DiskCache
 
-A cache path (which is always a directory) looks as follows:
+When you use `@cacheable` without any argument, `PickleSerializer`
+and `DiskCache` will be used by default. After executing a function
+like `foo("hello")` with the cache enabled, you can expect to see the
+following files on disk:
 
 ```
-<base_path>/<name>/versions/<version_id>/inputs/<input_id>/outputs/
+<cwd>/.cacheables/functions/<function_id>/inputs/<input_id>/<output_id>.pickle
+<cwd>/.cacheables/functions/<function_id>/inputs/<input_id>/metadata.json
 ```
 
-### `input-id`
+### `function_id`
 
-An `input-id` uniquely identifies a set of inputs to a function. We assume that
+An `function_id` uniquely identifies a function. Unless specified using the
+`function_id` argument to `cacheable`, the `function_id` will take the following
+form: `module.submodule:foo`.
+
+### `input_id`
+
+An `input_id` uniquely identifies a set of inputs to a function. We assume that
 changes to the inputs of a function will result in a change to the output of the
-function. You can customize how the `input-id` is calculated, but by default it's
-the hash of the args and kwargs passed to the cacheable function.
+function. Under the hood, each `input_id` is created by first hashing each
+individual input argument (which is itself cached!) and then hashing all of the
+argument hashes into a single hash.
 
-### `version-id`
+### `output_id`
 
-When a cacheable function's implementation changes, results we have in the cache may no
-longer be valid. We can solve this by changing the `version-id` of the cacheable
-function which, by default, is calculated by hashing the cacheable function's
-metadata. When the `version-id` changes, the cache path changes, and we store
-a new result instead of retrieving the old one.
+An `output_id` uniquely identifies an output to a function. Simiar to the
+`input_id`, it is a hash of the function's output.
 
 ## Usage
 
@@ -82,13 +91,12 @@ Customization is possible by passing in arguments to the decorator.
 
 ```python
 @cacheable(
-    base_path="/tmp",
-    name="string_lengths",
-    metadata={"version": "2.1.3"},
-    dump_fn=dump_to_txt,
-    load_fn=load_from_txt,
+    function_id="example",
+    cache=DiskCache(base_path="~/.cache"),
+    serializer=JsonSerializer(),
+    exclude_args_fn=lambda e: e in ["verbose"]
 )
-def foo(text: str) -> int:
+def foo(text: str, verbose: bool = False) -> int:
     sleep(10)  # simulate a long running function
     return len(str)
 ```
@@ -97,86 +105,95 @@ See the `@cacheable` docstring for more details.
 
 ### Caching
 
-Use the `enable_cache` context manager:
+Use `foo.enable_cache()` to enable the cache on a single function or
+`enable_all_caches` to enable the cache on all functions.
 
 ```python
-foo("hello")  #  returns 5 after 10 seconds
-foo("hello")  #  returns 5 after 10 seconds
+@cacheable
+def foobar(text: str) -> int:
+    sleep(10)  # simulate another long running function
+    return len(str)
+
+foo.clear_cache()
+foo("hello")  # returns after 10 seconds
+foo("hello")  # returns after 10 seconds
+
+foo.enable_cache()
+foo("hello")  # returns after 10 seconds (writes to cache)
+foo("hello")  # returns immediately (reads from cache)
+foobar("hello")  # returns after 10 seconds
+foobar("hello")  # returns after 10 seconds
+
+enable_all_caches()
+foobar("hello")  # returns after 10 seconds (writes to cache)
+foobar("hello")  # returns immediately (reads from cache)
+```
+
+You can also use both of these as context managers, if you only want to enable
+the cache temporarily within a certain scope.
+
+```python
+foo.clear_cache()
+foobar.clear_cache()
+
+foo("hello")  # returns after 10 seconds
+foo("hello")  # returns after 10 seconds
+
 with foo.enable_cache():
-    foo("hello")  #  returns 5 after 10 seconds
-    foo("hello")  #  returns 5 immediately
-```
+    foo("hello")  # returns after 10 seconds (writes to cache)
+    foo("hello")  # returns immediately (reads from cache)
+foo("hello")  # returns after 10 seconds
 
-You can use `enable_cache` on multiple cacheable functions at the same time:
-
-```python
 with foo.enable_cache(), bar.enable_cache():
-    foo("hello")
-    bar("world")
+    foo("hello")  # returns immediately (reads from cache)
+    foobar("hello")  # returns after 10 seconds (writes to cache)
+    foobar("hello")  # returns immediately (reads from cache)
+foo("hello")  # returns after 10 seconds
+foobar("hello")  # returns after 10 seconds
+
+with enable_all_caches():
+    foo("hello")  # returns immediately (reads from cache)
+    foobar("hello")  # returns immediately (reads from cache)
+foo("hello")  # returns after 10 seconds
+foobar("hello")  # returns after 10 seconds
 ```
-
-Or all cacheable functions at the same time:
-
-```python
-from cacheable import enable_cache
-
-with enable_cache():
-    foo("hello")
-    bar("world")
-```
-
 
 ### Cache Setting
 
-When an cacheable function is called inside a `enable_cache` context manager, the
-cache will be read from and written too. Sometimes you might need to leave the
-results in the cache untouched, or even overwrite the results in the cache. You can
-do this by specifying the `read` and `write` arguments.
+When a cacheable function is called after `enable_cache`, the cache will be
+read from and written too. Sometimes you might need to leave the results in the
+cache untouched, or even overwrite the results in the cache. You can do this by
+specifying the `read` and `write` arguments.
 
 ```python
-with foo.enable_cache(read=False, write=True):
-    foo("hello")  # foo called, and result added to cache
-    foo("hello")  # foo called, and result readded to cache
+foo.enable_cache(read=False, write=True)
+foo("hello")  # foo called, and result added to cache
+foo("hello")  # foo called, and result readded to cache
 ```
 
-### Overriding Cache Settings
+You have three levels of cache settings:
 
-You might have a function which calls a cacheable function with the cache
-enabled, but you might need to disable the cache without changing that original
-function's code. e.g. you might be running code in a production environment, or
-testing/debugging code.
+* Function: controlled by `foo.enable_cache`/`foo.disable_cache`.
+* Global: controlled by `enable_all_caches`/`disable_all_caches`
+* Environment: controlled by `CACHEABLES_ENABLED`/`CACHEABLES_DISABLED`
 
-You can call `disable_cache` in these situations (which is equivalent to calling
-`enable_cache(read=False, write=False)`).
+When nothing is explicitly enabled/disabled (i.e. default), the cache will be disabled so that the cacheable function runs without any caching. When *any* level is set to disabled, the cache will be disabled, regardless of the other level settings (even if they are explicilty set to enabled).
 
-```python
-def bar(text: str) -> int:
-    with foo.enable_cache():
-        return foo(text)
-
-bar("something")  # foo called
-bar("something")  # cached result for foo is used
-
-with foo.disable_cache():
-    bar("else")  # foo is called, and no result is added to cache
-    bar("else")  # foo is called, and no result is added to cache
-```
-
-When different `enable_cache` settings are used, the most restrictive settings
-will be used for `read` and `write`.
-
-```python
-with foo.enable_cache(read=False, write=True):
-    with foo.enable_cache(read=True, write=False):
-        foo("something")  # foo is called, and no result is added to cache
-        foo("something")  # foo is called, and no result is added to cache
-```
-
-### Value load
+### Output load
 
 Often you just want to load a result from the cache, but not execute it.
-You can do this by using the `load` method.
+You can do this by using the `load_output` method.
 
 ```python
-result = foo.load(1, "2")  # will load result from cache, and will error if result is not in cache
+input_id = foo.get_input_id("hello")
+output = foo.load_output(input_id)  # will error if result is not in cache
+```
+
+### Output dump
+
+Some more advanced use-cases might want to manually write results to the cache (e.g. batched processing). You can do this by using the `dump_output` method.
+
+```python
+input_id = foo.get_input_id("hello")
+output = foo.dump_output(5, input_id)
 ```
