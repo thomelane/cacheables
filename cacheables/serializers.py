@@ -1,45 +1,35 @@
 import json
 import pickle
-from pathlib import Path
 from typing import Any
 from abc import ABC, abstractmethod
 
 
 class Serializer(ABC):
+    metadata: dict = {}
+
     @abstractmethod
-    def dump(self, value: Any, path: Path):
+    def serialize(self, value: Any) -> bytes:
         pass
 
     @abstractmethod
-    def load(self, path: Path):
+    def deserialize(self, value: bytes) -> Any:
         pass
-
 
 class JsonSerializer(Serializer):
-    def _get_path(self, path: Path):
-        return path / "output.json"
+    metadata = { "extension": "json" }
 
-    def dump(self, value: Any, path: Path):
-        filepath = self._get_path(path)
-        with open(filepath, "w", encoding="utf-8") as file:
-            json.dump(value, file, indent=4)
+    def serialize(self, value: Any) -> bytes:
+        return json.dumps(value, indent=4).encode("utf-8")
 
-    def load(self, path: Path):
-        filepath = self._get_path(path)
-        with open(filepath, "r", encoding="utf-8") as file:
-            return json.load(file)
+    def deserialize(self, value: bytes) -> Any:
+        return json.loads(value.decode("utf-8"))
 
 
 class PickleSerializer(Serializer):
-    def _get_path(self, path: Path):
-        return path / "output.pickle"
+    metadata = { "extension": "pickle" }
 
-    def dump(self, value: Any, path: Path):
-        filepath = self._get_path(path)
-        with open(filepath, "wb") as file:
-            pickle.dump(value, file)
+    def serialize(self, value: Any) -> bytes:
+        return pickle.dumps(value)
 
-    def load(self, path: Path):
-        filepath = self._get_path(path)
-        with open(filepath, "rb") as file:
-            return pickle.load(file)
+    def deserialize(self, value: bytes) -> Any:
+        return pickle.loads(value)
