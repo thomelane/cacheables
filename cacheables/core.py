@@ -19,7 +19,7 @@ from .exceptions import (
 from .caches import Cache, DiskCache
 from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
-from .controller import CacheController
+from .controllers import CacheController
 from .serializers import Serializer, PickleSerializer
 
 
@@ -58,6 +58,7 @@ class CacheableFunction:
         self._controller = CacheController()
         self._serializer = serializer or PickleSerializer()
         self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
+        self._filter: Optional[Callable] = None
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
 
@@ -129,7 +130,11 @@ class CacheableFunction:
         if read:
             if self._cache.exists(input_key):
                 try:
-                    return self._load(input_key)
+                    output = self._load(input_key)
+                    if self._filter and not self._filter(output):
+                        self._logger.debug("read output failed the filter check")
+                    else:
+                        return output
                 except LoadException as error:
                     warning_msg = f"failed to load output from cache: {error}"
                     self._logger.warning(warning_msg)
@@ -196,9 +201,25 @@ class CacheableFunction:
         return self._cache.get_output_path(input_key)
 
     def enable_cache(
-        self, read: bool = True, write: bool = True
+        self,
+        read: bool = True,
+        write: bool = True,
+        filter: Optional[Callable] = None
     ) -> contextlib.AbstractContextManager[None]:
-        return self._controller.enable(read=read, write=write)
+        
+        previous_filter = self._filter
+        self._filter = filter
+        controller_context = self._controller.enable(read=read, write=write)
+
+        @contextlib.contextmanager
+        def context_manager():
+            try:
+                with controller_context:
+                    yield
+            finally:
+                self._filter = previous_filter
+
+        return context_manager()
 
     def disable_cache(self) -> contextlib.AbstractContextManager[None]:
         return self._controller.disable()
