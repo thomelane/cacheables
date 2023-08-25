@@ -58,7 +58,6 @@ class CacheableFunction:
         self._controller = CacheController()
         self._serializer = serializer or PickleSerializer()
         self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
-        self._filter: Optional[Callable] = None
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
 
@@ -131,8 +130,8 @@ class CacheableFunction:
             if self._cache.exists(input_key):
                 try:
                     output = self._load(input_key)
-                    if self._filter and not self._filter(output):
-                        self._logger.debug("read output failed the filter check")
+                    if not self._controller.is_passing_filter(output):
+                        self._logger.debug("read output doesn't pass through filter")
                     else:
                         return output
                 except LoadException as error:
@@ -206,20 +205,7 @@ class CacheableFunction:
         write: bool = True,
         filter: Optional[Callable] = None
     ) -> contextlib.AbstractContextManager[None]:
-        
-        previous_filter = self._filter
-        self._filter = filter
-        controller_context = self._controller.enable(read=read, write=write)
-
-        @contextlib.contextmanager
-        def context_manager():
-            try:
-                with controller_context:
-                    yield
-            finally:
-                self._filter = previous_filter
-
-        return context_manager()
+        return self._controller.enable(read=read, write=write, filter=filter)
 
     def disable_cache(self) -> contextlib.AbstractContextManager[None]:
         return self._controller.disable()

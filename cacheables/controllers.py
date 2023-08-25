@@ -1,6 +1,6 @@
 import os
 import warnings
-from typing import Optional
+from typing import Optional, Callable, Any
 import contextlib
 
 
@@ -8,20 +8,30 @@ class CacheController:
     def __init__(self):
         self._read: Optional[bool] = None
         self._write: Optional[bool] = None
+        self._filter: Optional[Callable] = None
         self._global = GlobalCacheController()
 
     def enable(
-        self, read: bool = True, write: bool = True
+        self,
+        read: bool = True,
+        write: bool = True,
+        filter: Optional[Callable] = lambda output: True
     ) -> contextlib.AbstractContextManager[None]:
-        previous_read, previous_write = self._read, self._write
-        self._read, self._write = read, write
+        previous_read = self._read
+        previous_write = self._write
+        previous_filter = self._filter
+        self._read = read
+        self._write = write
+        self._filter = filter
 
         @contextlib.contextmanager
         def context_manager():
             try:
                 yield
             finally:
-                self._read, self._write = previous_read, previous_write
+                self._read = previous_read
+                self._write = previous_write
+                self._filter = previous_filter
 
         return context_manager()
 
@@ -43,6 +53,12 @@ class CacheController:
             return True
         else:
             return None
+        
+    def is_passing_filter(self, output: Any) -> bool:
+        if self._filter is None:
+            return True
+        else:
+            return self._filter(output)
 
 
 class GlobalCacheController:
