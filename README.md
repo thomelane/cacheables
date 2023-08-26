@@ -5,12 +5,12 @@
 
 Cacheables is a Python package that makes it easy to cache function outputs.
 
-Cacheables stores cached outputs to disk by default, so this allows the cache to
-be reused between processes/executions. You have full control over how cached
-outputs are serialized and stored, so outputs could be accessed like regular
-files in the file system if required. Cacheables is also well suited to building
-efficient data workflows, because the input hashing system ensures only
-necessary parts of a workflow will be recomputed after a change.
+Cacheables is well suited to building efficient data workflows, because:
+
+* downstream steps will automatically recompute after making a change
+* everything is versioned (the function, the inputs and the outputs)
+* the cache is reused between different processes/executions (since it's on disk)
+* cached outputs are readable (since you choose the file format)
 
 `@cacheable` is the decorator that makes a function cacheable.
 
