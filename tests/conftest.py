@@ -1,7 +1,7 @@
 import os
 import pytest
 
-if os.getenv('_PYTEST_RAISE', '').lower() == 'true':
+if os.getenv("_PYTEST_RAISE", "").lower() == "true":
 
     @pytest.hookimpl(tryfirst=True)
     def pytest_exception_interact(call):

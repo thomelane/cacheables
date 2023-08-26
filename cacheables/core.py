@@ -200,10 +200,7 @@ class CacheableFunction:
         return self._cache.get_output_path(input_key)
 
     def enable_cache(
-        self,
-        read: bool = True,
-        write: bool = True,
-        filter: Optional[Callable] = None
+        self, read: bool = True, write: bool = True, filter: Optional[Callable] = None
     ) -> contextlib.AbstractContextManager[None]:
         return self._controller.enable(read=read, write=write, filter=filter)
 

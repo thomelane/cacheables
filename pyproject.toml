@@ -24,6 +24,7 @@ taskipy = "^1.12.0"
 
 [tool.taskipy.tasks]
 test = "pytest tests"
+format = "black cacheables tests"
 lint = "ruff check cacheables tests"
 
 [tool.ruff]

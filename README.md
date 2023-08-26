@@ -201,10 +201,15 @@ output = foo.dump_output(5, input_id)
 
 ## Development
 
-### Setup
+```bash
+poetry install
+poetry run task test    # pytest
+poetry run task format  # black
+poetry run task lint    # ruff
+```
+
+Use pre-commit to automatically format and lint before each commit.
 
 ```bash
-python -m venv .venv
-poetry install
-pre-commit install -c config/.pre-commit-config.yaml
+pre-commit install
 ```

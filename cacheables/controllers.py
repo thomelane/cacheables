@@ -15,7 +15,7 @@ class CacheController:
         self,
         read: bool = True,
         write: bool = True,
-        filter: Optional[Callable] = lambda output: True
+        filter: Optional[Callable] = lambda output: True,
     ) -> contextlib.AbstractContextManager[None]:
         previous_read = self._read
         previous_write = self._write
@@ -53,7 +53,7 @@ class CacheController:
             return True
         else:
             return None
-        
+
     def is_passing_filter(self, output: Any) -> bool:
         if self._filter is None:
             return True

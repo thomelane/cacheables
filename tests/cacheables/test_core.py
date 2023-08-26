@@ -12,7 +12,7 @@ from cacheables import (
     disable_all_caches,
     enable_all_caches,
     PickleSerializer,
-    DiskCache
+    DiskCache,
 )
 
 
@@ -90,7 +90,7 @@ def test_cacheable_cache_path(tmpdir):
         "foo",
         "inputs",
         "ad089d3d19511caa",
-        "3ca08f64e96a37c2.pickle"
+        "3ca08f64e96a37c2.pickle",
     )
 
     with foo.enable_cache():
