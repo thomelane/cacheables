@@ -10,7 +10,7 @@ repository = "https://github.com/thomelane/cacheables"
 cacheables = "cacheables.cli:cacheables"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 loguru = "^0.7.0"
 click = "^8.1.6"
 
