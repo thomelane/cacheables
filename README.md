@@ -12,6 +12,14 @@ Cacheables is well suited to building efficient data workflows, because:
 * the cache is reused between different processes/executions (stored with [`DiskCache`](https://github.com/thomelane/cacheables/blob/21bf54fb67b7f9cb2699915da3969b36a2519d9c/cacheables/caches/disk.py#L13) by default).
 * cached outputs are readable since you choose the file format ([`PickleSerializer`](https://github.com/thomelane/cacheables/blob/21bf54fb67b7f9cb2699915da3969b36a2519d9c/cacheables/serializers.py#L29C27-L29C27) is just a default).
 
+## Install
+
+```bash
+pip install cacheables
+```
+
+## Overview
+
 `@cacheable` is the decorator that makes a function cacheable.
 
 ```python
@@ -42,25 +50,26 @@ When the cache is enabled, the following happens:
         * using `serializer.serialize` and then `cache.write`
     * and the output will be returned
 
-## PickleSerializer & DiskCache
+### PickleSerializer & DiskCache
 
-When you use `@cacheable` without any argument, `PickleSerializer`
-and `DiskCache` will be used by default. After executing a function
-like `foo("hello")` with the cache enabled, you can expect to see the
-following files on disk:
+When you use `@cacheable` without any argument, `PickleSerializer` and
+`DiskCache` will be used by default.
+
+After executing a function like `foo("hello")` with the cache enabled, you can
+expect to see the following files on disk:
 
 ```
 <cwd>/.cacheables/functions/<function_id>/inputs/<input_id>/<output_id>.pickle
 <cwd>/.cacheables/functions/<function_id>/inputs/<input_id>/metadata.json
 ```
 
-### `function_id`
+#### `function_id`
 
 An `function_id` uniquely identifies a function. Unless specified using the
 `function_id` argument to `cacheable`, the `function_id` will take the following
 form: `module.submodule:foo`.
 
-### `input_id`
+#### `input_id`
 
 An `input_id` uniquely identifies a set of inputs to a function. We assume that
 changes to the inputs of a function will result in a change to the output of the
@@ -68,12 +77,12 @@ function. Under the hood, each `input_id` is created by first hashing each
 individual input argument (which is itself cached!) and then hashing all of the
 argument hashes into a single hash.
 
-### `output_id`
+#### `output_id`
 
 An `output_id` uniquely identifies an output to a function. Similar to the
 `input_id`, it is a hash of the function's output.
 
-## Usage
+### Documentation
 
 Start by wrapping your function with the `@cacheable` decorator.
 
@@ -100,7 +109,7 @@ def foo(text: str, verbose: bool = False) -> int:
 
 See the `@cacheable` docstring for more details.
 
-### Caching
+#### Caching
 
 Use `foo.enable_cache()` to enable the cache on a single function or
 `enable_all_caches` to enable the cache on all functions.
@@ -155,7 +164,7 @@ foo("hello")  # returns after 10 seconds
 foobar("hello")  # returns after 10 seconds
 ```
 
-### Cache Setting
+#### Cache Setting
 
 When a cacheable function is called after `enable_cache`, the cache will be
 read from and written too. Sometimes you might need to leave the results in the
@@ -176,7 +185,7 @@ You have three levels of cache settings:
 
 When nothing is explicitly enabled/disabled (i.e. default), the cache will be disabled so that the cacheable function runs without any caching. When *any* level is explicitly set to disabled, the cache will be disabled, regardless of the other level settings (even if they are explicitly set to enabled).
 
-### Output load
+#### Output load
 
 Often you just want to load a result from the cache, but not execute it.
 You can do this by using the `load_output` method.
@@ -186,7 +195,7 @@ input_id = foo.get_input_id("hello")
 output = foo.load_output(input_id)  # will error if result is not in cache
 ```
 
-### Output dump
+#### Output dump
 
 Some more advanced use-cases might want to manually write results to the cache (e.g. batched processing). You can do this by using the `dump_output` method.
 
