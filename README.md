@@ -7,10 +7,10 @@ Cacheables is a Python package that makes it easy to cache function outputs.
 
 Cacheables is well suited to building efficient data workflows, because:
 
-* downstream steps will automatically recompute after making a change
-* everything is versioned (the function, the inputs and the outputs)
-* the cache is reused between different processes/executions (since it's on disk)
-* cached outputs are readable (since you choose the file format)
+* downstream steps will automatically recompute after making a change.
+* everything is versioned: the function, the inputs and the outputs.
+* cache is reused between different processes/executions (stored on disk by default).
+* cached outputs are readable since you choose the file format (`.pickle` is just a default).
 
 `@cacheable` is the decorator that makes a function cacheable.
 
