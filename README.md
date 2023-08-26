@@ -3,17 +3,16 @@
 [![build](https://github.com/thomelane/cacheables/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/thomelane/cacheables/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/thomelane/cacheables/graph/badge.svg?token=3NNXBUBZIU)](https://codecov.io/gh/thomelane/cacheables)
 
-Cacheables is a module that make it easy to cache function results. You'll be
-able to experiment faster (by avoiding repeated work) and keep track of your
-experiments with out-of-the-box input/output versioning.
+Cacheables is a Python package that makes it easy to cache function outputs.
 
-@cacheable is the decorator that makes a function cacheable.
+Cacheables stores cached outputs to disk by default, so this allows the cache to
+be reused between processes/executions. You have full control over how cached
+outputs are serialized and stored, so outputs could be accessed like regular
+files in the file system if required. Cacheables is also well suited to building
+efficient data workflows, because the input hashing system ensures only
+necessary parts of a workflow will be recomputed after a change.
 
-A cacheable function executes just like a regular function by default, but gives
-you a convenient way to cache the results to disk if needed. When you call the
-cacheable function again (in the same process... or a completely different one
-days later), the result will be loaded from disk instead of executing the
-original function again.
+`@cacheable` is the decorator that makes a function cacheable.
 
 ```python
 @cacheable
@@ -25,19 +24,14 @@ def foo(text: str) -> int:
 foo("hello")  # returns after 10 seconds
 foo("hello")  # returns after 10 seconds
 
-foo.enable_cache()
-foo("world")  # returns after 10 seconds (writes to cache)
-foo("world")  # returns immediately (reads from cache)
-
-# same or different process
-
-foo.enable_cache()
-foo("hello")  # returns immediately (reads from cache)
+with foo.enable_cache():
+    foo("world")  # returns after 10 seconds (writes to cache)
+    foo("world")  # returns immediately (reads from cache)
 ```
 
 When the cache is enabled, the following happens:
 
-* the `input_key` will be calculated from the provided args
+* an `input_key` will be calculated from the provided args
 * if the `input_key` exists in the cache
     * the output will be loaded from the cache
         * using `cache.read` and then `serializer.deserialize`
