@@ -27,7 +27,8 @@ def load_function_from_qualified_name(qualified_name) -> CacheableFunction:
         )
     if not isinstance(func, CacheableFunction):
         raise click.BadParameter(
-            f"Function '{func_name}' is not a CacheableFunction. Must be decorated with @cacheable."
+            f"Function '{func_name}' is not a CacheableFunction. "
+            "Must be decorated with @cacheable."
         )
     return func
 

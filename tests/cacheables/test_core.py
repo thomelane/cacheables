@@ -124,6 +124,7 @@ def test_cacheable_change_metadata(tmpdir):
         assert foo(1) == 2
 
 
+@pytest.mark.filterwarnings("ignore:failed to load output")
 def test_cacheable_with_deserialize_error(tmpdir):
     def deserialize(value: bytes) -> Any:
         raise ValueError("An error occurred in deserialize.")
@@ -142,6 +143,7 @@ def test_cacheable_with_deserialize_error(tmpdir):
     assert serializer.serialize.call_count == 2
 
 
+@pytest.mark.filterwarnings("ignore:failed to dump output")
 def test_cacheable_with_serialize_error(tmpdir):
     def serialize(value: Any) -> bytes:
         raise ValueError("An error occurred in serialize.")

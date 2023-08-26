@@ -197,3 +197,14 @@ Some more advanced use-cases might want to manually write results to the cache (
 input_id = foo.get_input_id("hello")
 output = foo.dump_output(5, input_id)
 ```
+
+
+## Development
+
+### Setup
+
+```bash
+python -m venv .venv
+poetry install
+pre-commit install -c config/.pre-commit-config.yaml
+```

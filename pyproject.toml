@@ -18,7 +18,17 @@ click = "^8.1.6"
 pytest = "^7.4.0"
 ruff = "^0.0.284"
 black = "^23.7.0"
-ipykernel = "^6.25.1"
+pre-commit = "^3.3.3"
+pytest-cov = "^4.1.0"
+taskipy = "^1.12.0"
+
+[tool.taskipy.tasks]
+test = "pytest tests"
+lint = "ruff check cacheables tests"
+
+[tool.ruff]
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402", "F403", "F401"]
 
 [build-system]
 requires = ["poetry-core"]
