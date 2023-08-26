@@ -1,6 +1,6 @@
 # Cacheables
 
-[![package](https://github.com/thomelane/cacheables/actions/workflows/package.yml/badge.svg?branch=master)](https://github.com/thomelane/cacheables/actions/workflows/package.yml)
+[![build](https://github.com/thomelane/cacheables/actions/workflows/build.yml/badge.svg)](https://github.com/thomelane/cacheables/actions/workflows/build.yml)
 
 Cacheables is a module that make it easy to cache function results. You'll be
 able to experiment faster (by avoiding repeated work) and keep track of your
