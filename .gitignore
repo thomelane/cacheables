@@ -1,6 +1,7 @@
 .vscode
 .venv
 .envrc
+.coverage
 __pycache__
 draft/
 dist/
