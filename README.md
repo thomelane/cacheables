@@ -23,6 +23,8 @@ pip install cacheables
 `@cacheable` is the decorator that makes a function cacheable.
 
 ```python
+from cacheables import cacheable
+
 @cacheable
 def foo(text: str) -> int:
     sleep(10)  # simulate a long running function
