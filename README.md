@@ -1,6 +1,7 @@
 # Cacheables
 
 [![build](https://github.com/thomelane/cacheables/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/thomelane/cacheables/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/thomelane/cacheables/graph/badge.svg?token=3NNXBUBZIU)](https://codecov.io/gh/thomelane/cacheables)
 
 Cacheables is a module that make it easy to cache function results. You'll be
 able to experiment faster (by avoiding repeated work) and keep track of your
