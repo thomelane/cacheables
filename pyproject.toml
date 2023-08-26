@@ -18,6 +18,7 @@ click = "^8.1.6"
 pytest = "^7.4.0"
 ruff = "^0.0.284"
 black = "^23.7.0"
+ipykernel = "^6.25.1"
 
 [build-system]
 requires = ["poetry-core"]

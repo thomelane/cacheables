@@ -19,7 +19,7 @@ from .exceptions import (
 from .caches import Cache, DiskCache
 from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
-from .controller import CacheController
+from .controllers import CacheController
 from .serializers import Serializer, PickleSerializer
 
 
@@ -129,7 +129,11 @@ class CacheableFunction:
         if read:
             if self._cache.exists(input_key):
                 try:
-                    return self._load(input_key)
+                    output = self._load(input_key)
+                    if not self._controller.is_passing_filter(output):
+                        self._logger.debug("read output doesn't pass through filter")
+                    else:
+                        return output
                 except LoadException as error:
                     warning_msg = f"failed to load output from cache: {error}"
                     self._logger.warning(warning_msg)
@@ -196,9 +200,12 @@ class CacheableFunction:
         return self._cache.get_output_path(input_key)
 
     def enable_cache(
-        self, read: bool = True, write: bool = True
+        self,
+        read: bool = True,
+        write: bool = True,
+        filter: Optional[Callable] = None
     ) -> contextlib.AbstractContextManager[None]:
-        return self._controller.enable(read=read, write=write)
+        return self._controller.enable(read=read, write=write, filter=filter)
 
     def disable_cache(self) -> contextlib.AbstractContextManager[None]:
         return self._controller.disable()
