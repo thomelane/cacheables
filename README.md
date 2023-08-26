@@ -61,28 +61,21 @@ After executing a function like `foo("hello")` with the cache enabled, you can
 expect to see the following files on disk:
 
 ```
-<cwd>/.cacheables/functions/<function_id>/inputs/<input_id>/<output_id>.pickle
-<cwd>/.cacheables/functions/<function_id>/inputs/<input_id>/metadata.json
+<cwd>/.cacheables
+└── functions
+    └── <function_id>
+        └── inputs
+            └── <input_id>
+                ├── <output_id>.pickle
+                └── metadata.json
 ```
 
-#### `function_id`
-
-An `function_id` uniquely identifies a function. Unless specified using the
-`function_id` argument to `cacheable`, the `function_id` will take the following
-form: `module.submodule:foo`.
-
-#### `input_id`
-
-An `input_id` uniquely identifies a set of inputs to a function. We assume that
-changes to the inputs of a function will result in a change to the output of the
-function. Under the hood, each `input_id` is created by first hashing each
-individual input argument (which is itself cached!) and then hashing all of the
-argument hashes into a single hash.
-
-#### `output_id`
-
-An `output_id` uniquely identifies an output to a function. Similar to the
-`input_id`, it is a hash of the function's output.
+* `function_id`
+    * An `function_id` uniquely identifies a function. Unless specified using the `function_id` argument to `cacheable`, the `function_id` will take the following form: `module.submodule:foo`.
+* `input_id`
+    * An `input_id` uniquely identifies a set of inputs to a function. We assume that changes to the inputs of a function will result in a change to the output of the function. Under the hood, each `input_id` is created by first hashing each individual input argument (which is itself cached!) and then hashing all of the argument hashes into a single hash.
+* `output_id`
+    * An `output_id` uniquely identifies an output to a function. Similar to the `input_id`, it is a hash of the function's output.
 
 ### Documentation
 
