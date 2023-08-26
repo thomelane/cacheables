@@ -1,5 +1,6 @@
 .vscode
 .venv
+.envrc
 __pycache__
 draft/
 dist/
