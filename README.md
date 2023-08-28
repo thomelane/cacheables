@@ -56,18 +56,18 @@ When the cache is enabled on a function, the following happens:
 
 ## Standard Example
 
-Cacheables can be used to build efficient data workflows.
+Cacheables is well suited to building efficient data workflows.
 
-Just as a simple example, let's assume we have a data workflow that processes a
-string by removing the vowels, reversing it, and then finally concatenating it
-with the original string. We'll assume that two of these steps are
-computationally expensive (`remove_vowels` and `concatenate`), so we decorate
-them with `@cacheable`.
+As a simple example, let's assume we have a data workflow that processes a
+string by removing the vowels, reversing the output, and then finally
+concatenating that output with the original string. We'll assume that two of
+these steps are computationally expensive (`remove_vowels` and `concatenate`),
+so we decorate them with `@cacheable`.
 
 After running the workflow twice (showing that the cached results are used), we
-change its implementation to remove the `reverse` step. Only `concatenate` is
-run on the third workflow execution, which is much more efficient than running
-the whole workflow (including `remove_vowels`) again.
+modify the workflow by removing the `reverse` step. Only `concatenate` is run on
+the third workflow execution, which is much more efficient than running the
+whole workflow (including `remove_vowels`) again.
 
 ```python
 # standard_example.py
