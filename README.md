@@ -18,6 +18,11 @@ Cacheables is well suited to building efficient data workflows, because:
 pip install cacheables
 ```
 
+## Documentation
+
+Comprehensive details and guides can be found in the [official documentation](https://thomelane.github.io/cacheables/).
+
+
 ## Overview
 
 `@cacheable` is the decorator that makes a function cacheable.
