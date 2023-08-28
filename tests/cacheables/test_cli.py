@@ -5,7 +5,7 @@ import sys
 from unittest.mock import patch
 
 from cacheables import cacheable, CacheableFunction
-from cacheables.cli import load_function_from_qualified_name, adopt, clear
+from cacheables.cli import load_function_from_qualified_name, cacheables, adopt, clear
 
 
 @pytest.fixture
@@ -18,7 +18,11 @@ def foo():
     pass
 
 
-# make above function importable (as `test_cli:foo`)
+def bar():
+    pass
+
+
+# make above functions importable (as `test_cli:(foo|bar)`)
 sys.path.append(".")
 
 
@@ -27,9 +31,30 @@ def test_load_function_from_qualified_name():
     assert isinstance(fn, CacheableFunction)
 
 
-def test_load_function_from_qualified_name_non_existent():
+def test_load_function_from_qualified_name_invalid_format():
     with pytest.raises(click.BadParameter):
-        load_function_from_qualified_name("non_existent_module:func")
+        load_function_from_qualified_name("foo")
+
+
+def test_load_function_from_qualified_name_non_existent_module():
+    with pytest.raises(click.BadParameter):
+        load_function_from_qualified_name("non_existent_module:foo")
+
+
+def test_load_function_from_qualified_name_non_existent_function():
+    with pytest.raises(click.BadParameter):
+        load_function_from_qualified_name("non_existent_module:baz")
+
+
+def test_load_function_from_qualified_name_non_cacheable_function():
+    with pytest.raises(click.BadParameter):
+        load_function_from_qualified_name("non_existent_module:bar")
+
+
+def test_group(runner):
+    runner = CliRunner()
+    result = runner.invoke(cacheables)
+    assert result.exit_code == 0
 
 
 def test_adopt(runner):
