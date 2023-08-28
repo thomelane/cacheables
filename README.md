@@ -41,12 +41,9 @@ with foo.enable_cache():
 # python example.py  # 10 seconds (foo("world") used cache)
 ```
 
-When you run the above code, the first call to `foo` will take 10 seconds to
-```
+When the cache is enabled on a function, the following happens:
 
-When the cache is enabled, the following happens:
-
-* an `input_key` will be calculated from the provided args
+* an `input_key` will be calculated from the function arguments
 * if the `input_key` exists in the cache
     * the output will be loaded from the cache
         * using `cache.read` and then `serializer.deserialize`
