@@ -1,10 +1,11 @@
 from unittest.mock import patch
 from subprocess import CalledProcessError
-from cacheables.metadata import create_metadata
+from cacheables.metadata import create_metadata, _get_git_metadata
 
 
 def test_git_error():
-    # Mock the CalledProcessError to mimic an error when executing git
+    _get_git_metadata.cache_clear()
+
     with patch(
         "cacheables.metadata.subprocess.check_output",
         side_effect=CalledProcessError(1, "git"),
@@ -14,3 +15,5 @@ def test_git_error():
         )
         assert isinstance(metadata, dict)
         assert "git" not in metadata
+
+    _get_git_metadata.cache_clear()
