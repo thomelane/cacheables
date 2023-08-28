@@ -18,27 +18,27 @@ Cacheables is well suited to building efficient data workflows, because:
 pip install cacheables
 ```
 
-## Overview
+## Basic Example
 
 `@cacheable` is the decorator that makes a function cacheable.
 
 ```python
-# example.py
+# basic_example.py
 from cacheables import cacheable
 from time import sleep
 
 @cacheable
 def foo(text: str) -> int:
-    sleep(5)  # simulate a long running function
+    sleep(1)  # simulate a long running function
     return len(text)
 
-foo("hello")
+if __name__ == "__main__":
+    foo("hello")
+    with foo.enable_cache():
+        foo("world")
 
-with foo.enable_cache():
-    foo("world")
-
-# python example.py  # 20 seconds
-# python example.py  # 10 seconds (foo("world") used cache)
+# python basic_example.py  # 2 seconds
+# python basic_example.py  # 1 seconds (foo("world") used cache)
 ```
 
 When the cache is enabled on a function, the following happens:
@@ -53,6 +53,117 @@ When the cache is enabled on a function, the following happens:
     * the output will be dumped in the cache
         * using `serializer.serialize` and then `cache.write`
     * and the output will be returned
+
+## Workflow Example
+
+```python
+# workflow_example.py
+from cacheables import cacheable, enable_all_caches
+from time import sleep
+
+# cached functions of a data workflow
+
+@cacheable
+def remove_vowels(text: str) -> str:
+    sleep(1)  # simulate a long running function
+    return ''.join([char for char in text if char not in "aeiou"])
+
+@cacheable
+def concatenate(text: str, reversed_text: str) -> str:
+    sleep(1)  # simulate a long running function
+    return (text + reversed_text)
+
+# uncached function of a data workflow
+def reverse(text: str) -> str:
+    return text[::-1]
+
+# end-to-end element-wise data workflow
+def run_workflow_on_text(text: str) -> int:
+    text = remove_vowels(text)
+    reversed_text = reverse(text)
+    output = concatenate(text, reversed_text)
+    return output
+
+# end-to-end data workflow
+def run_workflow():
+    for text in ["cache this", "and cache that"]:
+        run_workflow_on_text(text)
+    print("workflow complete")
+
+
+if __name__ == "__main__":
+    enable_all_caches()
+
+    run_workflow()  # 4 seconds
+    run_workflow()  # 0 seconds
+
+    # redefining `reverse` could affect inputs to some downstream functions
+    # typically this code change would happen offline, not in the same script!
+    def reverse(text: str) -> str:
+        if len(text) < 8:
+            return text
+        else:
+            return text[::-1]
+    # also use `reverse.clear_cache()` once if `reverse` is a cached function
+
+    # `concatenate` correctly re-runs for "cache this" since len("cch ths") < 8
+    run_workflow()  # 1 second
+
+# python workflow_example.py  # 5 seconds
+# python workflow_example.py  # 0 seconds (both versions are still cached)
+```
+
+## Advanced Example
+
+```python
+# advanced_example.py
+from cacheables import cacheable, enable_all_caches, enable_logging
+from cacheables.caches import DiskCache
+from cacheables.serializers import JsonSerializer
+from time import sleep
+
+@cacheable(
+    function_id="example",
+    cache=DiskCache(base_path="~/.cache"),
+    serializer=JsonSerializer(),
+    exclude_args_fn=lambda e: e in ["verbose"]
+)
+def foo(text: str, verbose: bool = False) -> int:
+    sleep(1)  # simulate a long running function
+    return len(text)
+
+if __name__ == "__main__":
+    enable_all_caches()
+    enable_logging()
+
+    foo("cache this")  # 1 seconds
+    foo("cache this", verbose=True)  # 0 seconds
+
+    # manually write output to cache
+    input_id = foo.get_input_id("and cache that")
+    foo.dump_output(14, input_id)
+    foo("and cache that")  # 0 seconds
+
+    # manually read output from cache
+    input_id = foo.get_input_id("cache this")
+    foo.load_output(input_id)  # 0 seconds
+
+    # show output path in cache
+    foo.get_output_path(input_id)
+    # <cwd>/functions/example/inputs/cf5b2ab47064bd0e/aab3238922bcc25a.json
+
+    # only use certain outputs in cache, recompute others
+    with foo.enable_cache(filter=lambda output: output <= 10):
+        foo("cache this")  # 0 seconds
+        foo("and cache that")  # 1 seconds
+
+    # overwrite cache
+    with foo.enable_cache(read=False, write=True):
+        foo("cache this")  # 1 seconds
+
+# python advanced_example.py  # 3 seconds
+# python advanced_example.py  # 2 seconds (first foo("cache this") used cache)
+```
 
 ### PickleSerializer & DiskCache
 
@@ -79,7 +190,7 @@ expect to see the following files on disk:
 * `output_id`
     * An `output_id` uniquely identifies an output to a function. Similar to the `input_id`, it is a hash of the function's output.
 
-### Documentation
+## Other Documentation
 
 See the [official documentation](https://thomelane.github.io/cacheables/) for more details.
 
@@ -89,7 +200,7 @@ Start by wrapping your function with the `@cacheable` decorator.
 @cacheable
 def foo(text: str) -> int:
     sleep(10)  # simulate a long running function
-    return len(str)
+    return len(text)
 ```
 
 Customization is possible by passing in arguments to the decorator.
@@ -103,7 +214,7 @@ Customization is possible by passing in arguments to the decorator.
 )
 def foo(text: str, verbose: bool = False) -> int:
     sleep(10)  # simulate a long running function
-    return len(str)
+    return len(text)
 ```
 
 See the `@cacheable` docstring for more details.
@@ -117,7 +228,7 @@ Use `foo.enable_cache()` to enable the cache on a single function or
 @cacheable
 def foobar(text: str) -> int:
     sleep(10)  # simulate another long running function
-    return len(str)
+    return len(text)
 
 foo.clear_cache()
 foo("hello")  # returns after 10 seconds
