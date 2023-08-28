@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     # show output path in cache
     foo.get_output_path(input_id)
-    # <cwd>/functions/example/inputs/cf5b2ab47064bd0e/aab3238922bcc25a.json
+    # ~/.cache/functions/example/inputs/cf5b2ab47064bd0e/aab3238922bcc25a.json
 
     # only use certain outputs in cache, recompute others
     with foo.enable_cache(filter=lambda output: output <= 10):
