@@ -8,7 +8,7 @@ Cacheables is a Python package that makes it easy to cache function outputs.
 Cacheables is well suited to building efficient data workflows, because:
 
 * functions will only recompute if their inputs have changed.
-* everything is versioned: the function, the inputs and the outputs.
+* everything is versioned: the functions, the inputs and the outputs.
 * the cache is reused between different processes/executions (stored on [`DiskCache`](https://github.com/thomelane/cacheables/blob/21bf54fb67b7f9cb2699915da3969b36a2519d9c/cacheables/caches/disk.py#L13) by default).
 * cached outputs are readable since you choose the file format ([`PickleSerializer`](https://github.com/thomelane/cacheables/blob/21bf54fb67b7f9cb2699915da3969b36a2519d9c/cacheables/serializers.py#L29C27-L29C27) is just a default).
 
@@ -88,9 +88,9 @@ def concatenate(reversed_text: str, text: str) -> str:
     return (reversed_text + text)
 
 def run_workflow(text: str) -> int:
-    text = remove_vowels(text)
-    reversed_text = reverse(text)
-    output = concatenate(text, reversed_text)
+    t = remove_vowels(text)
+    t = reverse(t)
+    output = concatenate(t, text)
     return output
 
 
@@ -101,9 +101,9 @@ if __name__ == "__main__":
     run_workflow("cache this")  # 0 seconds
 
     def run_workflow(text: str) -> int:
-        text = remove_vowels(text)
-        # reversed_text = reverse(text)  # removed
-        output = concatenate(text, text)
+        t = remove_vowels(text)
+        # t = reverse(t)  # removed
+        output = concatenate(t, text)
         return output
 
     run_workflow("cache this")  # 1 second
