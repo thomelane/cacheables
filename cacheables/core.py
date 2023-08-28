@@ -16,11 +16,11 @@ from .exceptions import (
     InputKeyNotFoundError,
     CacheNotEnabledError,
 )
-from .caches import Cache, DiskCache
+from .caches import BaseCache, DiskCache
 from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
 from .controllers import CacheController
-from .serializers import Serializer, PickleSerializer
+from .serializers import BaseSerializer, PickleSerializer
 
 
 logger.disable(__name__)
@@ -48,8 +48,8 @@ class CacheableFunction:
         self,
         fn: Callable,
         function_id: Optional[str] = None,
-        cache: Optional[Cache] = None,
-        serializer: Optional[Serializer] = None,
+        cache: Optional[BaseCache] = None,
+        serializer: Optional[BaseSerializer] = None,
         exclude_args_fn: Optional[Callable] = None,
     ):
         self._fn = fn

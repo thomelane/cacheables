@@ -1,2 +1,2 @@
-from .cache import Cache
+from .base import BaseCache
 from .disk import DiskCache

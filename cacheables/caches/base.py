@@ -5,7 +5,7 @@ import datetime
 from ..keys import FunctionKey, InputKey
 
 
-class Cache(ABC):
+class BaseCache(ABC):
     # input methods
 
     @abstractmethod

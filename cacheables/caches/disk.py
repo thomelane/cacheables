@@ -5,12 +5,12 @@ import json
 import shutil
 import datetime
 
-from .cache import Cache
+from .base import BaseCache
 from ..keys import FunctionKey, InputKey
 from ..exceptions import ReadException, WriteException, InputKeyNotFoundError
 
 
-class DiskCache(Cache):
+class DiskCache(BaseCache):
     def __init__(self, base_path: Optional[Union[str, Path]] = None):
         super().__init__()
         self._base_path = (
