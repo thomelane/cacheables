@@ -2,7 +2,7 @@ import contextlib
 import functools
 import hashlib
 import pickle
-import sys
+
 import warnings
 from typing import Callable, Optional, Any
 import inspect
@@ -21,26 +21,6 @@ from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
 from .controllers import CacheController
 from .serializers import BaseSerializer, PickleSerializer
-
-
-logger.disable(__name__)
-
-
-def enable_debug_logging():
-    logger.enable(__name__)
-    logger.remove()
-    logger.add(
-        sink=sys.stderr,
-        level="DEBUG",
-        format=" | ".join(
-            [
-                "<green>{time:HH:mm:ss.SSS}</green>",
-                "<level>{level: <8}</level>",
-                "<level>fn: {extra[function_id]}</level>",
-                "<level>{message}</level>",
-            ]
-        ),
-    )
 
 
 class CacheableFunction:
