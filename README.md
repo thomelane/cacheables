@@ -18,16 +18,12 @@ Cacheables is well suited to building efficient data workflows, because:
 pip install cacheables
 ```
 
-## Documentation
-
-Comprehensive details and guides can be found in the [official documentation](https://thomelane.github.io/cacheables/).
-
-
 ## Overview
 
 `@cacheable` is the decorator that makes a function cacheable.
 
 ```python
+# example.py
 from cacheables import cacheable
 
 @cacheable
@@ -35,13 +31,16 @@ def foo(text: str) -> int:
     sleep(10)  # simulate a long running function
     return len(str)
 
-# will execute as normal by default
-foo("hello")  # returns after 10 seconds
-foo("hello")  # returns after 10 seconds
+foo("hello")
 
 with foo.enable_cache():
-    foo("world")  # returns after 10 seconds (writes to cache)
-    foo("world")  # returns immediately (reads from cache)
+    foo("world")
+
+# python example.py  # 20 seconds
+# python example.py  # 10 seconds (second foo call used cache)
+```
+
+When you run the above code, the first call to `foo` will take 10 seconds to
 ```
 
 When the cache is enabled, the following happens:
@@ -83,6 +82,8 @@ expect to see the following files on disk:
     * An `output_id` uniquely identifies an output to a function. Similar to the `input_id`, it is a hash of the function's output.
 
 ### Documentation
+
+See the [official documentation](https://thomelane.github.io/cacheables/) for more details.
 
 Start by wrapping your function with the `@cacheable` decorator.
 
