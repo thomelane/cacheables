@@ -54,66 +54,67 @@ When the cache is enabled on a function, the following happens:
         * using `serializer.serialize` and then `cache.write`
     * and the output will be returned
 
-## Workflow Example
+## Standard Example
+
+Cacheables can be used to build efficient data workflows.
+
+Just as a simple example, let's assume we have a data workflow that processes a
+string by removing the vowels, reversing it, and then finally concatenating it
+with the original string. We'll assume that two of these steps are
+computationally expensive (`remove_vowels` and `concatenate`), so we decorate
+them with `@cacheable`.
+
+After running the workflow twice (showing that the cached results are used), we
+change its implementation to remove the `reverse` step. Only `concatenate` is
+run on the third workflow execution, which is much more efficient than running
+the whole workflow (including `remove_vowels`) again.
 
 ```python
-# workflow_example.py
+# standard_example.py
 from cacheables import cacheable, enable_all_caches
 from time import sleep
-
-# cached functions of a data workflow
 
 @cacheable
 def remove_vowels(text: str) -> str:
     sleep(1)  # simulate a long running function
     return ''.join([char for char in text if char not in "aeiou"])
 
-@cacheable
-def concatenate(text: str, reversed_text: str) -> str:
-    sleep(1)  # simulate a long running function
-    return (text + reversed_text)
-
-# uncached function of a data workflow
 def reverse(text: str) -> str:
     return text[::-1]
 
-# end-to-end element-wise data workflow
-def run_workflow_on_text(text: str) -> int:
+@cacheable
+def concatenate(reversed_text: str, text: str) -> str:
+    sleep(1)  # simulate a long running function
+    return (reversed_text + text)
+
+def run_workflow(text: str) -> int:
     text = remove_vowels(text)
     reversed_text = reverse(text)
     output = concatenate(text, reversed_text)
     return output
 
-# end-to-end data workflow
-def run_workflow():
-    for text in ["cache this", "and cache that"]:
-        run_workflow_on_text(text)
-    print("workflow complete")
-
 
 if __name__ == "__main__":
     enable_all_caches()
 
-    run_workflow()  # 4 seconds
-    run_workflow()  # 0 seconds
+    run_workflow("cache this")  # 2 seconds
+    run_workflow("cache this")  # 0 seconds
 
-    # redefining `reverse` could affect inputs to some downstream functions
-    # typically this code change would happen offline, not in the same script!
-    def reverse(text: str) -> str:
-        if len(text) < 8:
-            return text
-        else:
-            return text[::-1]
-    # also use `reverse.clear_cache()` once if `reverse` is a cached function
+    def run_workflow(text: str) -> int:
+        text = remove_vowels(text)
+        # reversed_text = reverse(text)  # removed
+        output = concatenate(text, text)
+        return output
 
-    # `concatenate` correctly re-runs for "cache this" since len("cch ths") < 8
-    run_workflow()  # 1 second
+    run_workflow("cache this")  # 1 second
 
-# python workflow_example.py  # 5 seconds
-# python workflow_example.py  # 0 seconds (both versions are still cached)
+# python standard_example.py  # 5 seconds
+# python standard_example.py  # 0 seconds (both versions are still cached)
 ```
 
 ## Advanced Example
+
+Cacheables has many other features, a few of which are shown below.
 
 ```python
 # advanced_example.py
