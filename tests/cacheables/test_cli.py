@@ -43,12 +43,12 @@ def test_load_function_from_qualified_name_non_existent_module():
 
 def test_load_function_from_qualified_name_non_existent_function():
     with pytest.raises(click.BadParameter):
-        load_function_from_qualified_name("non_existent_module:baz")
+        load_function_from_qualified_name("test_cli:baz")
 
 
 def test_load_function_from_qualified_name_non_cacheable_function():
     with pytest.raises(click.BadParameter):
-        load_function_from_qualified_name("non_existent_module:bar")
+        load_function_from_qualified_name("test_cli:bar")
 
 
 def test_group(runner):
