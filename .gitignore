@@ -7,3 +7,6 @@ draft/
 dist/
 .cacheables/
 scripts/
+docs/_build/
+docs/_static/
+docs/_templates/
