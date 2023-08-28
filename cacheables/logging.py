@@ -22,3 +22,6 @@ def enable_logging(level: str = "DEBUG"):
             ]
         ),
     )
+
+
+disable_logging()

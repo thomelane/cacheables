@@ -25,11 +25,12 @@ pip install cacheables
 ```python
 # example.py
 from cacheables import cacheable
+from time import sleep
 
 @cacheable
 def foo(text: str) -> int:
-    sleep(10)  # simulate a long running function
-    return len(str)
+    sleep(5)  # simulate a long running function
+    return len(text)
 
 foo("hello")
 
@@ -37,7 +38,7 @@ with foo.enable_cache():
     foo("world")
 
 # python example.py  # 20 seconds
-# python example.py  # 10 seconds (second foo call used cache)
+# python example.py  # 10 seconds (foo("world") used cache)
 ```
 
 When you run the above code, the first call to `foo` will take 10 seconds to
