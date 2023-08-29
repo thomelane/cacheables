@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cacheables"
-version = "0.3.1"
+version = "0.3.2"
 description = ""
 authors = ["Thom Lane <thom.e.lane@gmail.com>"]
 readme = "README.md"
