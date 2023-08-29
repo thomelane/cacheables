@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     run_workflow("cache this")  # 1 second
 
-# python standard_example.py  # 5 seconds
+# python standard_example.py  # 3 seconds
 # python standard_example.py  # 0 seconds (current and previous are still both cached)
 ```
 
