@@ -6,7 +6,7 @@ import pickle
 import warnings
 from typing import Callable, Optional, Any
 import inspect
-from functools import lru_cache
+from functools import lru_cache, wraps
 
 from loguru import logger
 
@@ -21,6 +21,32 @@ from .keys import FunctionKey, InputKey
 from .metadata import create_metadata
 from .controllers import CacheController
 from .serializers import BaseSerializer, PickleSerializer
+
+
+def safe_lru_cache(maxsize=128, typed=False):
+    """
+    A safe version of lru_cache that falls back to executing the wrapped
+    function if the arguments are unhashable. Original lru_cache would raise a
+    TypeError in this case.
+    """
+
+    def decorator(func):
+        @lru_cache(maxsize=maxsize, typed=typed)
+        def cached_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return cached_func(*args, **kwargs)
+            except TypeError as e:
+                if "unhashable type" in str(e):
+                    return func(*args, **kwargs)
+                raise
+
+        return wrapper
+
+    return decorator
 
 
 class CacheableFunction:
@@ -47,7 +73,7 @@ class CacheableFunction:
     def _get_function_key(self) -> FunctionKey:
         return FunctionKey(function_id=self._function_id)
 
-    @lru_cache(maxsize=100)  # LRU cache for argument hashes
+    @safe_lru_cache()  # LRU cache for argument hashes
     def _hash_argument(self, arg: Any) -> str:
         arg_bytes = pickle.dumps(arg)
         return hashlib.md5(arg_bytes).hexdigest()
