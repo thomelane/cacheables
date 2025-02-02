@@ -1,8 +1,8 @@
 import asyncio
 import pytest
 
-from cacheables_async.decorator import async_cacheable
-from cacheables_async.caches.disk import AsyncDiskCache
+from cacheables.asyncio.decorator import async_cacheable
+from cacheables.asyncio.caches.disk import AsyncDiskCache
 
 
 @pytest.mark.asyncio

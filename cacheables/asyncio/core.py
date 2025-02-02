@@ -1,4 +1,3 @@
-import asyncio
 from functools import update_wrapper
 
 class AsyncCacheableFunction:
