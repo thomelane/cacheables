@@ -111,7 +111,8 @@ async def test_get_output_path(tmp_path):
     cache = AsyncDiskCache(base_path=tmp_path)
     input_key = InputKey(function_id="path_test", input_id="key_path")
     metadata = {"serializer": {"extension": "bin"}, "output_id": "output"}
-    # Write some output so that metadata is available to get the path using the full write method
+    # Write some output so that metadata is available to get the path using
+    # the full write method
     await cache.write(b"output data", metadata, input_key)
     path = await cache.get_output_path(input_key)
     # Verify that the path exists as a file

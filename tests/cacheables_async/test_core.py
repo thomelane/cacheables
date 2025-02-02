@@ -4,6 +4,7 @@ import pytest
 from cacheables_async.decorator import async_cacheable
 from cacheables_async.caches.disk import AsyncDiskCache
 
+
 @pytest.mark.asyncio
 async def test_async_cacheable_function(tmp_path):
     # Create an async function decorated with async_cacheable.
