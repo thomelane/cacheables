@@ -4,10 +4,31 @@ import os
 import json
 import shutil
 import datetime
+from functools import wraps
+from inspect import signature
+import hashlib
+
+from filelock import FileLock
 
 from .base import BaseCache
 from ..keys import FunctionKey, InputKey
 from ..exceptions import ReadException, WriteException, InputKeyNotFoundError
+
+
+def acquire_lock(func):
+    @wraps(func)
+    def wrapper(self: "DiskCache", *args, **kwargs):
+        sig = signature(func)
+        bound_args = sig.bind(self, *args, **kwargs)
+        input_key = bound_args.arguments.get("input_key", None)
+        if input_key is None:
+            raise ValueError(f"input_key argument not found for method {func.__name__}")
+        lock_path = self._construct_lock_path(input_key)
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with FileLock(str(lock_path)):
+            return func(self, *args, **kwargs)
+
+    return wrapper
 
 
 class DiskCache(BaseCache):
@@ -19,8 +40,6 @@ class DiskCache(BaseCache):
             or os.getcwd() + "/.cacheables"
         )
         self._base_path = Path(self._base_path).expanduser().resolve()
-
-    # path construction methods
 
     def _construct_functions_path(self) -> Path:
         base_path = Path(self._base_path)
@@ -55,11 +74,18 @@ class DiskCache(BaseCache):
         output_path = self._construct_output_path(input_key, metadata)
         return str(output_path)
 
-    # input methods
+    def _construct_lock_directory(self) -> Path:
+        return self._base_path / "locks"
+
+    def _construct_lock_path(self, input_key: InputKey) -> Path:
+        lock_name = hashlib.md5(
+            str(self._construct_input_path(input_key)).encode()
+        ).hexdigest()
+        return self._construct_lock_directory() / f"{lock_name}.lock"
 
     def exists(self, input_key: InputKey) -> bool:
-        output_path = self._construct_input_path(input_key)
-        return output_path.exists() and output_path.is_dir()
+        metadata_path = self._construct_metadata_path(input_key)
+        return metadata_path.exists() and metadata_path.is_file()
 
     def list(self, function_key: FunctionKey) -> List[InputKey]:
         inputs_path = self._construct_inputs_path(function_key)
@@ -84,21 +110,24 @@ class DiskCache(BaseCache):
         shutil.copytree(from_path, to_path, dirs_exist_ok=True)
         shutil.rmtree(from_path, ignore_errors=True)
 
-    # metadata methods
-
+    @acquire_lock
     def dump_metadata(self, metadata: dict, input_key: InputKey) -> None:
         metadata_path = self._construct_metadata_path(input_key)
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=4)
+        if os.stat(metadata_path).st_size < 5:
+            raise WriteException("Metadata file is empty")
 
+    @acquire_lock
     def load_metadata(self, input_key: InputKey) -> dict:
         metadata_path = self._construct_metadata_path(input_key)
+        if os.stat(metadata_path).st_size < 5:
+            raise WriteException("Metadata file is empty")
         with open(metadata_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    # output methods
-
+    @acquire_lock
     def read_output(self, metadata: dict, input_key: InputKey) -> bytes:
         try:
             output_path = self._construct_output_path(input_key, metadata)
@@ -108,6 +137,7 @@ class DiskCache(BaseCache):
         except Exception as error:
             raise ReadException(str(error)) from error
 
+    @acquire_lock
     def write_output(
         self, output_bytes: bytes, metadata: dict, input_key: InputKey
     ) -> None:
@@ -118,8 +148,6 @@ class DiskCache(BaseCache):
                 file.write(output_bytes)
         except Exception as error:
             raise WriteException(str(error)) from error
-
-    # last accessed
 
     def update_last_accessed(self, input_key: InputKey) -> None:
         metadata = self.load_metadata(input_key)
