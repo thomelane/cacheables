@@ -160,7 +160,7 @@ class AsyncDiskCache(BaseAsyncCache):
 
     async def update_last_accessed(self, input_key: InputKey) -> None:
         metadata = await self.load_metadata(input_key)
-        metadata["last_accessed"] = datetime.datetime.utcnow().isoformat() + "Z"
+        metadata["last_accessed"] = datetime.datetime.utcnow().isoformat()
         await self.dump_metadata(metadata, input_key)
 
     async def get_last_accessed(
@@ -168,5 +168,6 @@ class AsyncDiskCache(BaseAsyncCache):
     ) -> Optional[datetime.datetime]:
         metadata = await self.load_metadata(input_key)
         if "last_accessed" in metadata:
-            return datetime.datetime.fromisoformat(metadata["last_accessed"])
+            iso_string = metadata["last_accessed"]
+            return datetime.datetime.fromisoformat(iso_string)
         return None
