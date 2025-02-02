@@ -1,7 +1,10 @@
 from functools import update_wrapper
 
+
 class AsyncCacheableFunction:
-    def __init__(self, fn, function_id: str = None, cache=None):  # add correct typing to fn. AI!
+    def __init__(
+        self, fn, function_id: str = None, cache=None
+    ):
         self._fn = fn
         self._function_id = function_id or f"{fn.__module__}:{fn.__qualname__}"
         self._cache = cache

@@ -5,7 +5,6 @@ from cacheables.keys import FunctionKey, InputKey
 
 
 class BaseAsyncCache(ABC):
-
     # Input methods
     @abstractmethod
     async def list(self, function_key: FunctionKey) -> List[InputKey]:
@@ -20,7 +19,9 @@ class BaseAsyncCache(ABC):
         pass
 
     @abstractmethod
-    async def adopt(self, from_function_key: FunctionKey, to_function_key: FunctionKey) -> None:
+    async def adopt(
+        self, from_function_key: FunctionKey, to_function_key: FunctionKey
+    ) -> None:
         """
         Adopt caches from one function key to another.
         """
@@ -40,7 +41,9 @@ class BaseAsyncCache(ABC):
         pass
 
     @abstractmethod
-    async def write_output(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
+    async def write_output(
+        self, output_bytes: bytes, metadata: dict, input_key: InputKey
+    ) -> None:
         pass
 
     @abstractmethod
@@ -56,7 +59,9 @@ class BaseAsyncCache(ABC):
         pass
 
     @abstractmethod
-    async def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:
+    async def get_last_accessed(
+        self, input_key: InputKey
+    ) -> Optional[datetime.datetime]:
         pass
 
     # Synchronous-style convenience methods, now asynchronous
@@ -66,7 +71,9 @@ class BaseAsyncCache(ABC):
         output_bytes = await self.read_output(metadata, input_key)
         return output_bytes
 
-    async def write(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
+    async def write(
+        self, output_bytes: bytes, metadata: dict, input_key: InputKey
+    ) -> None:
         await self.evict(input_key)
         await self.write_output(output_bytes, metadata, input_key)
         await self.dump_metadata(metadata, input_key)

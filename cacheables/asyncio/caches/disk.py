@@ -16,6 +16,7 @@ from cacheables.exceptions import ReadException, WriteException, InputKeyNotFoun
 from cacheables.keys import FunctionKey, InputKey
 from .base import BaseAsyncCache
 
+
 def async_acquire_lock(func):
     @wraps(func)
     async def wrapper(self: "AsyncDiskCache", *args, **kwargs):
@@ -28,6 +29,7 @@ def async_acquire_lock(func):
         await asyncio.to_thread(lock_path.parent.mkdir, parents=True, exist_ok=True)
         async with AsyncFileLock(str(lock_path)):
             return await func(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -72,7 +74,9 @@ class AsyncDiskCache(BaseAsyncCache):
         return self._base_path / "locks"
 
     def _construct_lock_path(self, input_key: InputKey) -> Path:
-        lock_name = hashlib.md5(str(self._construct_input_path(input_key)).encode()).hexdigest()
+        lock_name = hashlib.md5(
+            str(self._construct_input_path(input_key)).encode()
+        ).hexdigest()
         return self._construct_lock_directory() / f"{lock_name}.lock"
 
     async def exists(self, input_key: InputKey) -> bool:
@@ -92,7 +96,9 @@ class AsyncDiskCache(BaseAsyncCache):
         for name in names:
             full_path = inputs_path / name
             if await aiofiles.os.path.isdir(str(full_path)):
-                result.append(InputKey(function_id=function_key.function_id, input_id=name))
+                result.append(
+                    InputKey(function_id=function_key.function_id, input_id=name)
+                )
         return result
 
     async def evict(self, input_key: InputKey) -> None:
@@ -103,7 +109,9 @@ class AsyncDiskCache(BaseAsyncCache):
         function_path = self._construct_function_path(function_key)
         await asyncio.to_thread(shutil.rmtree, function_path, ignore_errors=True)
 
-    async def adopt(self, from_function_key: FunctionKey, to_function_key: FunctionKey) -> None:
+    async def adopt(
+        self, from_function_key: FunctionKey, to_function_key: FunctionKey
+    ) -> None:
         from_path = self._construct_function_path(from_function_key)
         to_path = self._construct_function_path(to_function_key)
         await asyncio.to_thread(shutil.copytree, from_path, to_path, dirs_exist_ok=True)
@@ -134,12 +142,16 @@ class AsyncDiskCache(BaseAsyncCache):
             raise ReadException(str(error)) from error
 
     @async_acquire_lock
-    async def write_output(self, output_bytes: bytes, metadata: dict, input_key: InputKey) -> None:
+    async def write_output(
+        self, output_bytes: bytes, metadata: dict, input_key: InputKey
+    ) -> None:
         try:
+
             def _mkdir():
                 output_path = self._construct_output_path(input_key, metadata)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 return output_path
+
             output_path = await asyncio.to_thread(_mkdir)
             async with aiofiles.open(output_path, "wb") as file:
                 await file.write(output_bytes)
@@ -151,7 +163,9 @@ class AsyncDiskCache(BaseAsyncCache):
         metadata["last_accessed"] = datetime.datetime.utcnow().isoformat() + "Z"
         await self.dump_metadata(metadata, input_key)
 
-    async def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:
+    async def get_last_accessed(
+        self, input_key: InputKey
+    ) -> Optional[datetime.datetime]:
         metadata = await self.load_metadata(input_key)
         if "last_accessed" in metadata:
             return datetime.datetime.fromisoformat(metadata["last_accessed"])
