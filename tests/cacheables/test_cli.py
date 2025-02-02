@@ -61,7 +61,9 @@ def test_group(runner):
 def test_adopt(runner):
     # Mock the adopt_cache method to make it a no-op
     with patch("cacheables.CacheableFunction.adopt_cache") as mock_adopt:
-        result = runner.invoke(adopt, ["sample_function_id", "tests.cacheables.test_cli:foo"])
+        result = runner.invoke(
+            adopt, ["sample_function_id", "tests.cacheables.test_cli:foo"]
+        )
         mock_adopt.assert_called_once_with("sample_function_id")
         assert result.exit_code == 0
 
