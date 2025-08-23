@@ -6,7 +6,7 @@ authors = [
     { name = "Thom Lane", email = "thom..e.lane@gmail.com" }
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10,<4"
 repository = "https://github.com/thomelane/cacheables"
 dependencies = [
     "aiofiles>=24.1.0",
