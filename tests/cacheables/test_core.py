@@ -1,17 +1,17 @@
 # pylint: disable=C0103,C0104,C0116,W0621
 
-from typing import Tuple, Any
+from typing import Any, Tuple
 from unittest import mock
 
 import pytest
 
 from cacheables import (
     CacheableFunction,
+    DiskCache,
+    PickleSerializer,
     cacheable,
     disable_all_caches,
     enable_all_caches,
-    PickleSerializer,
-    DiskCache,
 )
 
 

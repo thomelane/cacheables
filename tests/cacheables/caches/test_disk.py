@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from cacheables import cacheable, DiskCache
+from cacheables import DiskCache, cacheable
 
 
 def test_cacheable_cache_path(tmpdir):

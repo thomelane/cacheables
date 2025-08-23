@@ -1,5 +1,7 @@
-import click
 import importlib
+
+import click
+
 from .core import CacheableFunction
 
 
