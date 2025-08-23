@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 
-from .core import CacheableFunction
 from .caches import BaseCache
+from .core import CacheableFunction
 from .serializers import BaseSerializer
 
 

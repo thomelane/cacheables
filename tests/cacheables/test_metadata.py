@@ -1,6 +1,7 @@
-from unittest.mock import patch
 from subprocess import CalledProcessError
-from cacheables.metadata import create_metadata, _get_git_metadata
+from unittest.mock import patch
+
+from cacheables.metadata import _get_git_metadata, create_metadata
 
 
 def test_git_error():

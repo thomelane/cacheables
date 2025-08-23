@@ -1,6 +1,6 @@
+import datetime
 from abc import ABC, abstractmethod
 from typing import List, Optional
-import datetime
 
 from ..keys import FunctionKey, InputKey
 
