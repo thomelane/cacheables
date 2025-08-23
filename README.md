@@ -315,14 +315,13 @@ input_id = foo.get_input_id("hello")
 output = foo.dump_output(5, input_id)
 ```
 
-
 ## Development
 
 ```bash
-poetry install
-poetry run task test    # pytest
-poetry run task format  # black
-poetry run task lint    # ruff
+uv sync
+uv run task test    # pytest
+uv run task format  # black
+uv run task lint    # ruff
 ```
 
 Use pre-commit to automatically format and lint before each commit.
