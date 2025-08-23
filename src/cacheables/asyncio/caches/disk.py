@@ -1,19 +1,21 @@
-import os
-import json
 import asyncio
-import aiofiles
-import aiofiles.os
 import datetime
 import hashlib
-from pathlib import Path
-from typing import List, Optional
+import json
+import os
 import shutil
 from functools import wraps
 from inspect import signature
+from pathlib import Path
+from typing import List, Optional
+
+import aiofiles
+import aiofiles.os
 from filelock import AsyncFileLock
 
-from cacheables.exceptions import ReadException, WriteException, InputKeyNotFoundError
+from cacheables.exceptions import InputKeyNotFoundError, ReadException, WriteException
 from cacheables.keys import FunctionKey, InputKey
+
 from .base import BaseAsyncCache
 
 
@@ -160,7 +162,7 @@ class AsyncDiskCache(BaseAsyncCache):
 
     async def update_last_accessed(self, input_key: InputKey) -> None:
         metadata = await self.load_metadata(input_key)
-        metadata["last_accessed"] = datetime.datetime.utcnow().isoformat()
+        metadata["last_accessed"] = datetime.datetime.now(datetime.UTC).isoformat()
         await self.dump_metadata(metadata, input_key)
 
     async def get_last_accessed(

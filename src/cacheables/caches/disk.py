@@ -1,18 +1,18 @@
-from typing import List, Optional, Union
-from pathlib import Path
-import os
-import json
-import shutil
 import datetime
+import hashlib
+import json
+import os
+import shutil
 from functools import wraps
 from inspect import signature
-import hashlib
+from pathlib import Path
+from typing import List, Optional, Union
 
 from filelock import FileLock
 
-from .base import BaseCache
+from ..exceptions import InputKeyNotFoundError, ReadException, WriteException
 from ..keys import FunctionKey, InputKey
-from ..exceptions import ReadException, WriteException, InputKeyNotFoundError
+from .base import BaseCache
 
 
 def acquire_lock(func):
@@ -151,7 +151,7 @@ class DiskCache(BaseCache):
 
     def update_last_accessed(self, input_key: InputKey) -> None:
         metadata = self.load_metadata(input_key)
-        metadata["last_accessed"] = datetime.datetime.utcnow().isoformat()
+        metadata["last_accessed"] = datetime.datetime.now(datetime.UTC).isoformat()
         self.dump_metadata(metadata, input_key)
 
     def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:

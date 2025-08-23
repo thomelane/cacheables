@@ -33,7 +33,7 @@ def create_metadata(input_id: str, output_id: str, serializer_metadata: dict) ->
     metadata = {}
     metadata["input_id"] = input_id
     metadata["output_id"] = output_id
-    metadata["created_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+    metadata["created_at"] = datetime.datetime.now(datetime.UTC).isoformat() + "Z"
     if serializer_metadata:
         metadata["serializer"] = serializer_metadata
     git_metadata = _get_git_metadata()
