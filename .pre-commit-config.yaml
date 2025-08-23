@@ -12,11 +12,11 @@ repos:
     hooks:
     -   id: format
         name: format
-        entry: poetry run task format
+        entry: uv run task format
         language: system
         pass_filenames: false
     -   id: lint
         name: lint
-        entry: poetry run task lint
+        entry: uv run task lint
         language: system
         pass_filenames: false
