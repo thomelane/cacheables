@@ -162,7 +162,9 @@ class AsyncDiskCache(BaseAsyncCache):
 
     async def update_last_accessed(self, input_key: InputKey) -> None:
         metadata = await self.load_metadata(input_key)
-        metadata["last_accessed"] = datetime.datetime.now(datetime.UTC).isoformat()
+        metadata["last_accessed"] = datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat()
         await self.dump_metadata(metadata, input_key)
 
     async def get_last_accessed(

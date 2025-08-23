@@ -151,7 +151,9 @@ class DiskCache(BaseCache):
 
     def update_last_accessed(self, input_key: InputKey) -> None:
         metadata = self.load_metadata(input_key)
-        metadata["last_accessed"] = datetime.datetime.now(datetime.UTC).isoformat()
+        metadata["last_accessed"] = datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat()
         self.dump_metadata(metadata, input_key)
 
     def get_last_accessed(self, input_key: InputKey) -> Optional[datetime.datetime]:
