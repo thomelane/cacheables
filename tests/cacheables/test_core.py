@@ -139,7 +139,7 @@ def test_cacheable_with_serialize_error(tmpdir):
 
 
 def test_cacheable_cache_read_only(
-    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]
+    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock],
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
@@ -156,7 +156,7 @@ def test_cacheable_cache_read_only(
 
 
 def test_cacheable_cache_write_only(
-    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]
+    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock],
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
@@ -172,7 +172,7 @@ def test_cacheable_cache_write_only(
 
 
 def test_cacheable_cache_disabled(
-    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]
+    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock],
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
@@ -191,7 +191,7 @@ def test_cacheable_cache_disabled(
 
 
 def test_cacheable_cache_override(
-    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]
+    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock],
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
@@ -216,7 +216,7 @@ def test_cacheable_cache_override(
 
 
 def test_cacheable_disable_cache_globally(
-    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]
+    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock],
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
@@ -231,7 +231,7 @@ def test_cacheable_disable_cache_globally(
 
 
 def test_cacheable_enable_cache_globally(
-    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]
+    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock],
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
@@ -245,7 +245,7 @@ def test_cacheable_enable_cache_globally(
 
 
 def test_cacheable_disable_cache_via_env_var(
-    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock]
+    observable_foo: Tuple[CacheableFunction, mock.Mock, mock.Mock, mock.Mock],
 ):
     foo, inner_fn, deserialize, serialize = observable_foo
 
