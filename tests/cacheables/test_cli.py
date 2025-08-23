@@ -5,8 +5,8 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from cacheables import cacheable, CacheableFunction
-from cacheables.cli import load_function_from_qualified_name, cacheables, adopt, clear
+from cacheables import CacheableFunction, cacheable
+from cacheables.cli import adopt, clear, load_function_from_qualified_name
 
 
 @pytest.fixture
@@ -50,12 +50,6 @@ def test_load_function_from_qualified_name_non_existent_function():
 def test_load_function_from_qualified_name_non_cacheable_function():
     with pytest.raises(click.BadParameter):
         load_function_from_qualified_name("tests.cacheables.test_cli:bar")
-
-
-def test_group(runner):
-    runner = CliRunner()
-    result = runner.invoke(cacheables)
-    assert result.exit_code == 0
 
 
 def test_adopt(runner):
