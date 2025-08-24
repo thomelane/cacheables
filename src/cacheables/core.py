@@ -26,15 +26,14 @@ class CacheableFunction:
         function_id: Optional[str] = None,
         cache: Optional[BaseCache] = None,
         serializer: Optional[BaseSerializer] = None,
-        exclude_args_fn: Optional[Callable] = None,
+        key_builder: Optional[Callable] = None,
     ):
         self._fn = fn
         self._function_id = function_id or self.get_function_id()
         self._cache = cache or DiskCache()
         self._controller = CacheController()
         self._serializer = serializer or PickleSerializer()
-        self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
-        self._key_builder = create_key_builder(self._exclude_args_fn)
+        self._key_builder = key_builder or create_key_builder()
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
 

@@ -49,6 +49,23 @@ def test_cacheable_with_complex_args(tmpdir):
     assert result == 5
 
 
+def test_cacheable_with_custom_key_builder(tmpdir):
+    def custom_key_builder(fn, args, kwargs):
+        return f"test_{args[0]}"
+
+    @cacheable(cache=DiskCache(base_path=tmpdir), key_builder=custom_key_builder)
+    def foo(value: int) -> int:
+        return value * 2
+
+    # Test that it uses the custom key builder
+    assert foo.get_input_id(42) == "test_42"
+
+    # Test that caching works with custom key
+    result1 = foo(42)
+    result2 = foo(42)
+    assert result1 == result2 == 84
+
+
 def test_cacheable_function_no_args(tmpdir):
     @cacheable(cache=DiskCache(base_path=tmpdir))
     def foo() -> str:

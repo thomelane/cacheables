@@ -287,3 +287,34 @@ class TestPerformance:
             assert (
                 second_call_count < first_call_count + 3
             )  # Not +3 individual arg calls
+
+
+class TestCacheableFunctionKeyBuilder:
+    """Test CacheableFunction with custom key_builder parameter"""
+
+    def test_custom_key_builder(self):
+        """Test CacheableFunction with a custom key builder"""
+
+        def custom_key_builder(fn, args, kwargs):
+            return f"custom_{args[0]}"
+
+        def test_func(x, y):
+            return x + y
+
+        cacheable_fn = CacheableFunction(test_func, key_builder=custom_key_builder)
+        input_id = cacheable_fn.get_input_id(5, 10)
+        assert input_id == "custom_5"
+
+    def test_default_behavior_unchanged(self):
+        """Test that default behavior is unchanged when key_builder=None"""
+
+        def test_func(x, y):
+            return x + y
+
+        cacheable_fn1 = CacheableFunction(test_func, key_builder=None)
+        cacheable_fn2 = CacheableFunction(test_func)
+
+        input_id1 = cacheable_fn1.get_input_id(5, 10)
+        input_id2 = cacheable_fn2.get_input_id(5, 10)
+
+        assert input_id1 == input_id2
