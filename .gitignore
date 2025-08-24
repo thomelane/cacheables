@@ -2,6 +2,7 @@
 .venv
 .envrc
 .coverage
+coverage.xml
 __pycache__
 draft/
 dist/
@@ -10,4 +11,4 @@ scripts/
 docs/_build/
 docs/_static/
 docs/_templates/
-.aider*
+.ruff_cache/
