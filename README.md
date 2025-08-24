@@ -121,13 +121,14 @@ Cacheables has many other features, a few of which are shown below.
 from cacheables import cacheable, enable_all_caches, enable_logging
 from cacheables.caches import DiskCache
 from cacheables.serializers import JsonSerializer
+from cacheables.keys import create_key_builder
 from time import sleep
 
 @cacheable(
     function_id="example",
     cache=DiskCache(base_path="~/.cache"),
     serializer=JsonSerializer(),
-    exclude_args_fn=lambda e: e in ["verbose"]
+    key_builder=create_key_builder(exclude_args_fn=lambda e: e in ["verbose"])
 )
 def foo(text: str, verbose: bool = False) -> int:
     sleep(1)  # simulate a long running function
