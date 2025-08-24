@@ -1,10 +1,7 @@
 import contextlib
 import functools
 import hashlib
-import inspect
-import pickle
 import warnings
-from functools import lru_cache, wraps
 from typing import Any, Callable, Optional
 
 from loguru import logger
@@ -17,35 +14,9 @@ from .exceptions import (
     InputKeyNotFoundError,
     LoadException,
 )
-from .keys import FunctionKey, InputKey
+from .keys import FunctionKey, InputKey, create_key_builder
 from .metadata import create_metadata
 from .serializers import BaseSerializer, PickleSerializer
-
-
-def safe_lru_cache(maxsize=128, typed=False):
-    """
-    A safe version of lru_cache that falls back to executing the wrapped
-    function if the arguments are unhashable. Original lru_cache would raise a
-    TypeError in this case.
-    """
-
-    def decorator(func):
-        @lru_cache(maxsize=maxsize, typed=typed)
-        def cached_func(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                return cached_func(*args, **kwargs)
-            except TypeError as e:
-                if "unhashable type" in str(e):
-                    return func(*args, **kwargs)
-                raise
-
-        return wrapper
-
-    return decorator
 
 
 class CacheableFunction:
@@ -63,6 +34,7 @@ class CacheableFunction:
         self._controller = CacheController()
         self._serializer = serializer or PickleSerializer()
         self._exclude_args_fn = exclude_args_fn or (lambda arg: arg.startswith("_"))
+        self._key_builder = create_key_builder(self._exclude_args_fn)
         self._logger = logger.bind(function_id=self._function_id)
         functools.update_wrapper(self, fn)  # preserves signature and docstring
 
@@ -72,33 +44,12 @@ class CacheableFunction:
     def _get_function_key(self) -> FunctionKey:
         return FunctionKey(function_id=self._function_id)
 
-    @safe_lru_cache()  # LRU cache for argument hashes
-    def _hash_argument(self, arg: Any) -> str:
-        arg_bytes = pickle.dumps(arg)
-        return hashlib.md5(arg_bytes).hexdigest()
-
     def get_input_id(self, *args, **kwargs) -> str:
-        signature = inspect.signature(self._fn)
-        bound_arguments = signature.bind(*args, **kwargs)
-        bound_arguments.apply_defaults()
-        arguments = bound_arguments.arguments
-        # remove excluded arguments and hash the rest
-        arguments = {
-            key: self._hash_argument(value)
-            for key, value in arguments.items()
-            if not self._exclude_args_fn(key)
-        }
-        # sort arguments to ensure consistent ordering
-        arguments = tuple(sorted(arguments.items()))
-        str_to_hash = pickle.dumps(arguments)
-        input_id = hashlib.md5(str_to_hash).hexdigest()[:16]
-        return input_id
+        return self._key_builder(self._fn, args, kwargs)
 
     def _get_input_key_from_args(self, *args, **kwargs) -> InputKey:
-        return InputKey(
-            function_id=self._function_id,
-            input_id=self.get_input_id(*args, **kwargs),
-        )
+        input_id = self.get_input_id(*args, **kwargs)
+        return InputKey(function_id=self._function_id, input_id=input_id)
 
     def _get_input_key_from_input_id(self, input_id: str) -> InputKey:
         return InputKey(
